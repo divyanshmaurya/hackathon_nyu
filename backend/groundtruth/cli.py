@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import pathlib
 import sys
 
@@ -86,6 +87,15 @@ def _wrap(text: str, width: int) -> list[str]:
     return lines
 
 
+def _default_cassettes() -> pathlib.Path:
+    """Cassettes live next to the package, not next to the user's shell.
+
+    Resolving this relative to the CWD meant `demo` only worked from backend/,
+    which is exactly the kind of thing that wastes someone's time at 2am.
+    """
+    return pathlib.Path(__file__).resolve().parents[1] / "tests" / "cassettes"
+
+
 DEMOS = [
     ("OPT consultancy scam", "hr@apex-global-consultancy.top",
      "Apex Global Consultancy Inc",
@@ -119,13 +129,13 @@ def main(argv: list[str] | None = None) -> int:
     vp.add_argument("--json", action="store_true")
 
     dp = sub.add_parser("demo", help="run the built-in demo cases")
-    dp.add_argument("--cassettes", default="tests/cassettes")
+    dp.add_argument("--cassettes", default=None)
 
     a = ap.parse_args(argv)
 
     if a.cmd == "demo":
-        tp = (CassetteTransport(a.cassettes)
-              if pathlib.Path(a.cassettes).is_dir() else default_transport())
+        cass = pathlib.Path(a.cassettes) if a.cassettes else _default_cassettes()
+        tp = CassetteTransport(cass) if cass.is_dir() else default_transport()
         for title, sender, company, msg in DEMOS:
             print("\n" + "═" * 78)
             print(_c(f"  {title}", "b"))
@@ -136,8 +146,9 @@ def main(argv: list[str] | None = None) -> int:
     msg = a.message
     if a.message_file:
         msg = pathlib.Path(a.message_file).read_text()
-    tp = (CassetteTransport(a.cassettes)
-          if a.cassettes and pathlib.Path(a.cassettes).is_dir() else default_transport())
+    cass = pathlib.Path(a.cassettes) if a.cassettes else _default_cassettes()
+    tp = (default_transport() if os.environ.get("TAVILY_API_KEY")
+          else (CassetteTransport(cass) if cass.is_dir() else default_transport()))
     v = verify(a.sender, msg, a.company, document_path=a.document, transport=tp)
     print(json.dumps(v.to_dict(), indent=2) if a.json else render(v))
     return 2 if v.max_severity >= Severity.HIGH else 0

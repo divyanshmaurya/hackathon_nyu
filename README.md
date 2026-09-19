@@ -47,9 +47,14 @@ a test-suite release gate.*
 **55 tests passing.** Run the demo:
 
 ```bash
-pip install -r backend/requirements.txt
-cd backend && python3 -m groundtruth.cli demo
+git clone -b claude/tender-lovelace-4vgxta https://github.com/divyanshmaurya/hackathon_nyu
+cd hackathon_nyu
+pip3 install --user -r backend/requirements.txt
+python3 -m groundtruth.cli demo
 ```
+
+(If `python3 -m groundtruth.cli` says "No module named groundtruth", run it from
+the `backend/` directory, or `export PYTHONPATH=$PWD/backend`.)
 
 ### ⚠️ Sponsor APIs are blocked from this build environment
 
@@ -60,14 +65,20 @@ the moment they execute somewhere with network access.
 
 To go live, on a machine with internet:
 
+Paste these one at a time. **Do not include trailing `#` comments** — zsh does
+not treat `#` as a comment in an interactive shell and will error.
+
 ```bash
-export TAVILY_API_KEY=tvly-...            # app.tavily.com/redeem/HIRINGHACK
-export PRISMTRACE_API_KEY=...             # prism.blockconvey.com, coupon HACKBUILDER#3
-export PRISMTRACE_PROJECT_ID=...
-export GROUNDTRUTH_RECORD_DIR=backend/tests/cassettes   # records real responses
-cd backend && python3 -m groundtruth.cli verify \
-    --from careers@dataddoghq.com --company Datadog
+export TAVILY_API_KEY=tvly-YOUR-REAL-KEY
+export PRISMTRACE_API_KEY=YOUR-REAL-KEY
+export PRISMTRACE_PROJECT_ID=YOUR-PROJECT-ID
+export GROUNDTRUTH_RECORD_DIR=$PWD/backend/tests/cassettes
+python3 -m groundtruth.cli verify --from careers@dataddoghq.com --company Datadog
 ```
+
+Keys: Tavily at `app.tavily.com/redeem/HIRINGHACK`; PRISM at
+`prism.blockconvey.com/signup` (coupon `HACKBUILDER#3`, key under
+Settings → API Keys).
 
 Until then `CassetteTransport` replays fixtures through the identical code
 path, and `OfflineTransport` **refuses** rather than reporting a clean result —

@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import os
 import pathlib
+import sys
 
 FILENAMES = (".env", ".env.local")
 
@@ -26,10 +27,37 @@ TRACKED = (
 )
 
 
+class NotPlainText(RuntimeError):
+    """The file is a rich-text document, not an env file."""
+
+
+# TextEdit on macOS defaults to RTF, so "save your keys in a file" commonly
+# produces one. Its markup parses into plausible-looking garbage rather than
+# failing, which is the worst outcome: the keys appear loaded and every API
+# call then 401s for no visible reason.
+def _reject_rich_text(text: str, path: pathlib.Path) -> None:
+    head = text.lstrip()[:20]
+    if head.startswith("{\\rtf") or head.startswith("{\rtf"):
+        raise NotPlainText(
+            f"{path} is a Rich Text (RTF) document, not a plain-text env file. "
+            f"Convert it with:\n\n    textutil -convert txt "
+            f"{path} -output {path.parent / '.env'}\n")
+    if text[:4] in ("PK\x03\x04",) or head.startswith("\xd0\xcf"):
+        raise NotPlainText(f"{path} looks like a Word/Office document, not "
+                           f"plain text. Re-save it as plain text.")
+
+
+# Word processors substitute typographic quotes, which then become part of the
+# value and produce authentication failures that look like a bad key.
+_SMART_QUOTES = {"\u201c": '"', "\u201d": '"', "\u2018": "'", "\u2019": "'"}
+
+
 def _parse(text: str) -> dict[str, str]:
     out: dict[str, str] = {}
+    for smart, plain in _SMART_QUOTES.items():
+        text = text.replace(smart, plain)
     for raw in text.splitlines():
-        line = raw.strip()
+        line = raw.lstrip("\ufeff").strip()
         if not line or line.startswith("#"):
             continue
         if line.startswith("export "):
@@ -63,8 +91,15 @@ def load_env(start: str | pathlib.Path | None = None, override: bool = False) ->
             if not path.is_file():
                 continue
             try:
-                values = _parse(path.read_text())
+                raw = path.read_text(errors="replace")
+                _reject_rich_text(raw, path)
+                values = _parse(raw)
             except OSError:
+                continue
+            except NotPlainText as exc:
+                # Loud, not silent: a mis-saved file that loads as nonsense is
+                # harder to diagnose than one that refuses.
+                print(f"\n  Cannot read credentials: {exc}", file=sys.stderr)
                 continue
             for key, value in values.items():
                 if override or key not in os.environ:

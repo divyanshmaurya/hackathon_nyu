@@ -4,6 +4,8 @@ from __future__ import annotations
 import pathlib
 import sys
 
+import pytest
+
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 from groundtruth.config import _parse, load_env, status  # noqa: E402
@@ -104,3 +106,35 @@ def test_source_files_named_keys_are_not_ignored():
                         "backend/groundtruth/attest/keys.py"],
                        cwd=root, capture_output=True)
     assert r.returncode != 0, "attest/keys.py is being gitignored"
+
+
+def test_rtf_file_is_rejected_with_the_conversion_command(tmp_path):
+    """TextEdit defaults to RTF, so "save your keys in a file" commonly makes
+    one. Its markup parses into plausible garbage rather than failing, so the
+    keys look loaded and every API call then 401s for no visible reason."""
+    from groundtruth.config import NotPlainText, _reject_rich_text
+    f = tmp_path / "keys.rtf"
+    f.write_text(r"{\rtf1\ansi\ansicpg1252 \f0\fs24 TAVILY_API_KEY=tvly-abc}")
+    with pytest.raises(NotPlainText) as e:
+        _reject_rich_text(f.read_text(), f)
+    assert "textutil -convert txt" in str(e.value)
+
+
+def test_rtf_env_file_does_not_load_garbage(tmp_path, monkeypatch):
+    monkeypatch.delenv("TAVILY_API_KEY", raising=False)
+    (tmp_path / ".env").write_text(
+        r"{\rtf1\ansi\ansicpg1252 \f0\fs24 TAVILY_API_KEY=tvly-abc}")
+    load_env(tmp_path)
+    import os
+    assert "TAVILY_API_KEY" not in os.environ
+
+
+def test_typographic_quotes_are_normalised():
+    """Word processors substitute curly quotes, which otherwise become part of
+    the value and produce auth failures that look like a bad key."""
+    assert _parse("TAVILY_API_KEY=“tvly-abc”")["TAVILY_API_KEY"] == "tvly-abc"
+    assert _parse("K=‘v’")["K"] == "v"
+
+
+def test_leading_byte_order_mark_is_stripped():
+    assert _parse("﻿TAVILY_API_KEY=tvly-abc")["TAVILY_API_KEY"] == "tvly-abc"

@@ -1,9 +1,20 @@
-pymupdf>=1.24
-pytest>=8.0
+# Core — everything runs with just these.
+pymupdf>=1.24            # PDF layer extraction, document forensics
+cryptography>=42.0       # Ed25519 signing for employer attestations
 fastapi>=0.115
 uvicorn[standard]>=0.30
+python-multipart>=0.0.9  # file uploads
 httpx>=0.27
 pydantic>=2.8
-python-multipart>=0.0.9
-tavily-python>=0.5
-prismtrace-sdk
+
+# Sponsor integrations. Each degrades gracefully when its key is absent.
+tavily-python>=0.5       # employer corroboration
+prismtrace-sdk>=0.5      # tracing
+solari-browser>=0.1.3    # managed stealth browser for careers pages
+
+# Careers-page checking without a Solari key uses a local browser.
+# After installing, fetch the browser binary once:  playwright install chromium
+playwright>=1.40
+
+# Tests
+pytest>=8.0

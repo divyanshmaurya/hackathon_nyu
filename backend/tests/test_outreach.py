@@ -164,3 +164,30 @@ def test_findings_are_ordered_illegal_first():
 def test_every_finding_tells_the_reader_what_to_do():
     for f in scan(OPT_SCAM).findings:
         assert f.remediation.strip(), f"{f.code} has no remediation"
+
+
+# ----------------------------------------------- hyphenated own-domain fix ---
+
+@pytest.mark.parametrize("sender,company", [
+    ("jo@acme-robotics.com", "Acme Robotics"),
+    ("hr@general-motors.com", "General Motors"),
+    ("x@acmerobotics.com", "Acme Robotics"),
+])
+def test_company_own_hyphenated_domain_is_not_a_typosquat(sender, company):
+    """Regression: normalising the company name stripped separators while the
+    domain kept them, so a company's own domain read as one edit away from
+    itself and every hyphenated employer was flagged as imitating itself."""
+    v = analyse(sender, company)
+    assert v.max_severity < Severity.HIGH, [f.code for f in v.findings]
+
+
+@pytest.mark.parametrize("sender,code", [
+    ("r@gооgle.com", "DOMAIN_CONFUSABLE_IMITATION"),   # Cyrillic
+    ("h@g00gle.com", "DOMAIN_CONFUSABLE_IMITATION"),             # digit zero
+    ("x@acme-robotic.com", "DOMAIN_TYPOSQUAT"),                  # genuine typo
+])
+def test_hyphen_fix_did_not_swallow_real_imitations(sender, code):
+    """The separator fix must test the RAW name; matching only after
+    deconfusion is precisely what an imitation looks like."""
+    company = "Google" if "gle" in sender else "Acme Robotics"
+    assert any(f.code == code for f in analyse(sender, company).findings)

@@ -118,6 +118,19 @@ h3.group{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(
   <label for="message">Paste their message</label>
   <textarea id="message" name="message" placeholder="Paste the full email, LinkedIn message or WhatsApp text here."></textarea>
 
+  <div class="row">
+    <div>
+      <label for="me">Your email <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+      <input id="me" name="me" placeholder="you@university.edu" autocomplete="off">
+      <p class="hint">Only hashed, to check a signed message was meant for you.</p>
+    </div>
+    <div>
+      <label for="attestation">Verification code, if included <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+      <input id="attestation" name="attestation" placeholder="gt1.…" autocomplete="off">
+      <p class="hint">Some employers sign their outreach. Paste the code here.</p>
+    </div>
+  </div>
+
   <label for="document">Offer letter, if they sent one (PDF)</label>
   <input id="document" name="document" type="file" accept="application/pdf">
   <p class="hint">Files are processed in memory and deleted immediately. Nothing is stored.</p>
@@ -132,6 +145,8 @@ h3.group{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(
     <button type="button" class="chip" data-ex="scam">OPT consultancy pitch</button>
     <button type="button" class="chip" data-ex="lookalike">Look-alike domain</button>
     <button type="button" class="chip" data-ex="legit">Ordinary recruiter</button>
+    <button type="button" class="chip" data-ex="signed">Signed by the employer</button>
+    <button type="button" class="chip" data-ex="replay">Stolen signature</button>
   </div>
 </form>
 
@@ -150,18 +165,27 @@ You will be on bench until we find a client project; salary starts once billing 
 This offer expires in 24 hours. Contact us on WhatsApp.`},
   lookalike:{sender:"careers@dataddoghq.com",company:"Datadog",
     message:"Hi, we'd like to move forward with your application. Please confirm your details and we'll send the paperwork."},
+  signed:{sender:"a.chen@datadoghq.com",company:"Datadog",signed:true,
+    message:"Hi Alex, attaching the role details for the Platform Engineering position we discussed. Our verification code is included so you can confirm this really came from us."},
+  replay:{sender:"hr@careers-portal-intl.com",company:"Datadog",signed:true,
+    message:"Hi! We're recruiting for Datadog. Please confirm your details and we'll send the offer paperwork over today."},
   legit:{sender:"a.chen@datadoghq.com",company:"Datadog",
     message:`Hi Alex, I'm a recruiter at Datadog. I came across your GitHub and wondered if you'd be open to chatting about our Platform Engineering team.
 
 Happy to share the job description and set up a 30-minute call with the hiring manager next week. No pressure at all if the timing isn't right.`}
 };
+let DEMO_TOKEN="";
+fetch("/api/demo-token").then(r=>r.json()).then(d=>{DEMO_TOKEN=d.token||"";}).catch(()=>{});
 const $=s=>document.querySelector(s), out=$("#out"), esc=s=>String(s??"")
   .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 
 document.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{
   const e=EX[c.dataset.ex]; $("#sender").value=e.sender;
   $("#company").value=e.company; $("#message").value=e.message;
-  $("#document").value=""; $("#f").requestSubmit();
+  $("#document").value="";
+  $("#attestation").value = e.signed ? DEMO_TOKEN : "";
+  $("#me").value = e.signed ? "alex@example.com" : "";
+  $("#f").requestSubmit();
 });
 $("#clear").onclick=()=>{$("#f").reset(); out.innerHTML="";};
 
@@ -181,6 +205,7 @@ function render(d){
   const all=[];
   for(const part of ["practices","domain","employer","document"])
     if(d[part]&&d[part].findings) all.push(...d[part].findings);
+  if(d.attestation_findings) all.push(...d.attestation_findings);
   all.sort((a,b)=>({critical:4,high:3,medium:2,low:1,info:0})[b.severity]
                  -({critical:4,high:3,medium:2,low:1,info:0})[a.severity]);
 

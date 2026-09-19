@@ -11,6 +11,9 @@ import os
 import pathlib
 import sys
 
+from .attest.keys import EmployerKey, WELL_KNOWN_PATH
+from .attest.resolver import LocalRegistry, default_resolver
+from .attest.token import issue as issue_token
 from .corroborate.transport import CassetteTransport, default_transport
 from .integrity.findings import Severity
 from .verify import verify
@@ -126,12 +129,53 @@ def main(argv: list[str] | None = None) -> int:
     vp.add_argument("--message-file", default=None)
     vp.add_argument("--document", default=None, help="attached offer letter (PDF)")
     vp.add_argument("--cassettes", default=None)
+    vp.add_argument("--attestation", default=None,
+                    help="signed attestation token (gt1.…) from the sender")
+    vp.add_argument("--me", default=None,
+                    help="your own email, to check the attestation was issued for you")
+    vp.add_argument("--registry", default=None,
+                    help="local directory of well-known key documents (demo/testing)")
     vp.add_argument("--json", action="store_true")
+
+    kp = sub.add_parser("keygen",
+                        help="employer: create a signing key and the file to publish")
+    kp.add_argument("--domain", required=True)
+    kp.add_argument("--contact", default=None, help="abuse-reporting address")
+    kp.add_argument("--out", default=".", help="directory to write into")
+
+    ip = sub.add_parser("issue", help="employer: sign an attestation for one message")
+    ip.add_argument("--domain", required=True)
+    ip.add_argument("--key", required=True, help="path to the private key PEM")
+    ip.add_argument("--role", required=True)
+    ip.add_argument("--recruiter", required=True)
+    ip.add_argument("--to", default=None, help="candidate email (hashed, never stored)")
+    ip.add_argument("--days", type=int, default=30)
 
     dp = sub.add_parser("demo", help="run the built-in demo cases")
     dp.add_argument("--cassettes", default=None)
 
     a = ap.parse_args(argv)
+
+    if a.cmd == "keygen":
+        key = EmployerKey.generate(a.domain)
+        out = pathlib.Path(a.out); out.mkdir(parents=True, exist_ok=True)
+        priv = out / f"{a.domain}.private.pem"
+        pub = out / "groundtruth.json"
+        priv.write_text(key.private_pem()); priv.chmod(0o600)
+        pub.write_text(key.well_known_json(a.contact))
+        print(f"\n  Signing key   {priv}   (keep secret, never commit)")
+        print(f"  Publish       {pub}")
+        print(f"                → https://{a.domain}{WELL_KNOWN_PATH}")
+        print(f"  Key id        {key.kid}\n")
+        print("  Candidates verify signatures against that published file, so the")
+        print("  trust anchor is your domain. Groundtruth is never consulted.\n")
+        return 0
+
+    if a.cmd == "issue":
+        key = EmployerKey.load_private_pem(a.domain, pathlib.Path(a.key).read_text())
+        tok = issue_token(key, a.role, a.recruiter, a.to, ttl_days=a.days)
+        print(tok)
+        return 0
 
     if a.cmd == "demo":
         cass = pathlib.Path(a.cassettes) if a.cassettes else _default_cassettes()
@@ -149,7 +193,10 @@ def main(argv: list[str] | None = None) -> int:
     cass = pathlib.Path(a.cassettes) if a.cassettes else _default_cassettes()
     tp = (default_transport() if os.environ.get("TAVILY_API_KEY")
           else (CassetteTransport(cass) if cass.is_dir() else default_transport()))
-    v = verify(a.sender, msg, a.company, document_path=a.document, transport=tp)
+    rs = LocalRegistry(a.registry) if a.registry else default_resolver()
+    v = verify(a.sender, msg, a.company, document_path=a.document,
+               attestation=a.attestation, recipient_email=a.me,
+               transport=tp, resolver=rs)
     print(json.dumps(v.to_dict(), indent=2) if a.json else render(v))
     return 2 if v.max_severity >= Severity.HIGH else 0
 

@@ -15,12 +15,14 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
+from .attest.resolver import KeyResolver, KeysUnavailable, default_resolver
+from .attest.token import TokenCheck, parse as parse_token, verify as verify_token
 from .corroborate.employer import EmployerEvidence, verify_employer
 from .corroborate.transport import Transport, default_transport
 from .integrity.findings import Finding, Severity
 from .integrity.scanner import IntegrityReport, scan_pdf
 from .observability.prism import PrismRecorder, Trace
-from .outreach.domains import DomainVerdict, analyse as analyse_domain
+from .outreach.domains import DomainVerdict, analyse as analyse_domain, domain_of
 from .outreach.practices import PracticeReport, scan as scan_practices
 
 
@@ -32,13 +34,15 @@ class Verification:
     practices: PracticeReport | None = None
     employer: EmployerEvidence | None = None
     document: IntegrityReport | None = None
+    attestation: TokenCheck | None = None
+    attestation_findings: list[Finding] = field(default_factory=list)
     trace: Trace | None = None
     headline: str = ""
     recommendation: str = ""
 
     @property
     def findings(self) -> list[Finding]:
-        out: list[Finding] = []
+        out: list[Finding] = list(self.attestation_findings)
         for part in (self.domain, self.practices, self.employer, self.document):
             if part is not None:
                 out.extend(part.findings)
@@ -60,8 +64,88 @@ class Verification:
             "practices": self.practices.to_dict() if self.practices else None,
             "employer": self.employer.to_dict() if self.employer else None,
             "document": self.document.to_dict() if self.document else None,
+            "attestation": self.attestation.to_dict() if self.attestation else None,
+            # Exposed separately: attestation findings are not nested under any
+            # of the four check objects, so a consumer iterating those alone
+            # would silently drop them -- including the critical replay case.
+            "attestation_findings": [f.to_dict() for f in self.attestation_findings],
             "trace": self.trace.to_dict() if self.trace else None,
         }
+
+
+def _attestation_findings(check: TokenCheck | None,
+                          unavailable: str | None,
+                          sender_domain: str | None = None) -> list[Finding]:
+    """Express an attestation result in the same evidence model as everything else."""
+    from .integrity.findings import Layer
+
+    def mk(code, title, sev, detail, evidence="", remediation="", conf=1.0):
+        return Finding(code=code, title=title, severity=sev, layer=Layer.VISIBLE,
+                       detail=detail, evidence=evidence, remediation=remediation,
+                       confidence=conf)
+
+    if unavailable:
+        return [mk(
+            "ATTEST_NOT_CHECKED", "The attestation could not be checked",
+            Severity.INFO,
+            "This message carried a signed attestation, but we could not "
+            "retrieve the issuer's keys to check it. Nothing was verified — "
+            "that is not the same as the signature failing.",
+            evidence=unavailable,
+            remediation="Try again with a connection, or check the issuer's "
+                        "site yourself.")]
+    if check is None:
+        return []
+
+    if check.valid:
+        att = check.attestation
+
+        # A signature proves who *issued* the attestation, not who sent the
+        # message carrying it. Tokens travel in email and can be leaked,
+        # forwarded or scraped, so a valid one replayed from another domain
+        # would otherwise be laundered into "signed by datadoghq.com" — the
+        # trust signal vouching for a scam. Binding the two is what makes the
+        # signature mean anything.
+        if sender_domain and att:
+            iss = att.issuer.lower()
+            if not (sender_domain == iss or sender_domain.endswith("." + iss)):
+                return [mk(
+                    "ATTEST_ISSUER_MISMATCH",
+                    "The signature is real, but it did not come from this sender",
+                    Severity.CRITICAL,
+                    f"This attestation was genuinely issued by '{iss}', and the "
+                    f"signature checks out — but the message was sent from "
+                    f"'{sender_domain}'. A valid attestation proves who created "
+                    f"it, not who forwarded it. Attaching someone else's real "
+                    f"attestation to your own message is the most likely way "
+                    f"this pattern occurs.",
+                    evidence=f"issued by: {iss}   |   sent from: {sender_domain}",
+                    remediation=f"Treat this as impersonation of {iss}. If you "
+                                f"want to reach them, go to their website "
+                                f"directly.")]
+
+        return [mk(
+            "ATTEST_VALID", f"Cryptographically signed by {check.issuer}",
+            Severity.INFO,
+            f"This message carries a valid signature from '{check.issuer}', "
+            f"verified against the public key published on that domain. "
+            f"Groundtruth is not trusted in this check — the signature is "
+            f"checked directly against the company's own site. "
+            f"{check.reason}",
+            evidence=(f"role={att.role!r} recruiter={att.recruiter} "
+                      f"expires={att.expires_at[:10]}" if att else ""),
+            remediation="Origin confirmed. Terms, pay and the role itself are "
+                        "still yours to evaluate.")]
+
+    sev = Severity.HIGH if check.expired or check.recipient_matches is False \
+        else Severity.CRITICAL
+    return [mk(
+        "ATTEST_INVALID", "The attestation on this message does not check out",
+        sev,
+        check.reason,
+        evidence=f"claimed issuer: {check.issuer or 'unknown'}",
+        remediation=("Do not rely on this message's claimed origin. Contact the "
+                     "company through their published website."))]
 
 
 def _summarise(v: Verification) -> tuple[str, str]:
@@ -93,6 +177,14 @@ def _summarise(v: Verification) -> tuple[str, str]:
             "Slow down and confirm independently before sending anything. A "
             "legitimate employer will wait.",
         )
+    if any(f.code == "ATTEST_VALID" for f in v.findings) and not high and not critical:
+        return (
+            f"This message is cryptographically signed by "
+            f"{v.attestation.issuer if v.attestation else 'the employer'}.",
+            "The signature confirms the message genuinely came from that "
+            "domain. It does not confirm the role, the pay, or that the "
+            "recruiter has the authority they claim — evaluate those normally.",
+        )
     if any(f.code == "EMPLOYER_NOT_CHECKED" for f in v.findings):
         return (
             "Nothing alarming found — but the employer check did not run.",
@@ -112,8 +204,11 @@ def verify(
     message: str = "",
     claimed_company: str | None = None,
     document_path: str | None = None,
+    attestation: str | None = None,
+    recipient_email: str | None = None,
     transport: Transport | None = None,
     recorder: PrismRecorder | None = None,
+    resolver: KeyResolver | None = None,
 ) -> Verification:
     """Run every available check over one piece of outreach."""
     transport = transport or default_transport()
@@ -155,7 +250,29 @@ def verify(
                out=f"verdict={v.domain.verdict} severity={v.domain.max_severity.value}",
                ms=int((time.perf_counter() - t0) * 1000))
 
-    # 4. If an offer letter was attached, check it for manipulation.
+    # 4. A signed attestation, if the sender supplied one. Checked against the
+    #    issuer's own domain, never against anything the token points at.
+    if attestation:
+        t0 = time.perf_counter()
+        resolver = resolver or default_resolver()
+        try:
+            issuer = parse_token(attestation).issuer
+            well_known = resolver.fetch(issuer)
+            v.attestation = verify_token(attestation, well_known,
+                                         recipient_email=recipient_email)
+            v.attestation_findings = _attestation_findings(
+                v.attestation, None, sender_domain=domain_of(sender))
+            status = "success" if v.attestation.valid else "error"
+            out = f"issuer={issuer} valid={v.attestation.valid}"
+        except (KeysUnavailable, ValueError) as exc:
+            v.attestation_findings = _attestation_findings(
+                None, str(exc), sender_domain=domain_of(sender))
+            status, out = "error", f"unavailable: {exc}"
+        trace.tool("groundtruth.attest", "Verify signed attestation",
+                   inp=attestation[:40] + "…", out=out,
+                   ms=int((time.perf_counter() - t0) * 1000), status=status)
+
+    # 5. If an offer letter was attached, check it for manipulation.
     if document_path:
         t0 = time.perf_counter()
         v.document = scan_pdf(document_path)

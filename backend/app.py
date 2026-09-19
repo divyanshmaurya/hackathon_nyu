@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from groundtruth.attest.resolver import LocalRegistry, default_resolver
 from groundtruth.corroborate.transport import CassetteTransport, default_transport
 from groundtruth.observability.prism import PrismRecorder
 from groundtruth.verify import verify
@@ -19,6 +20,7 @@ from groundtruth.verify import verify
 HERE = pathlib.Path(__file__).resolve().parent
 STATIC = HERE / "static"
 CASSETTES = HERE / "tests" / "cassettes"
+REGISTRY = HERE / "tests" / "registry"
 
 app = FastAPI(title="Groundtruth", version="0.1.0",
               description="Verify who is recruiting you, before you hand over anything.")
@@ -49,6 +51,8 @@ async def api_verify(
     sender: str = Form(...),
     message: str = Form(""),
     company: str = Form(""),
+    attestation: str = Form(""),
+    me: str = Form(""),
     document: UploadFile | None = File(None),
 ) -> JSONResponse:
     tmp_path = None
@@ -64,13 +68,24 @@ async def api_verify(
             message=message,
             claimed_company=(company.strip() or None),
             document_path=tmp_path,
+            attestation=(attestation.strip() or None),
+            recipient_email=(me.strip() or None),
             transport=_transport(),
             recorder=_recorder,
+            resolver=(LocalRegistry(REGISTRY) if REGISTRY.is_dir()
+                      else default_resolver()),
         )
         return JSONResponse(v.to_dict())
     finally:
         if tmp_path:
             pathlib.Path(tmp_path).unlink(missing_ok=True)
+
+
+@app.get("/api/demo-token")
+def demo_token() -> dict:
+    """The sample attestation used by the built-in examples."""
+    f = REGISTRY / "_demo_token.txt"
+    return {"token": f.read_text().strip() if f.is_file() else ""}
 
 
 @app.get("/")

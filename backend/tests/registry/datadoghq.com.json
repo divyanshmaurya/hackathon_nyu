@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "domain": "datadoghq.com",
+  "keys": [
+    {
+      "kid": "7e795a3a0988056f",
+      "alg": "ed25519",
+      "public_key": "lAM68MllzxBNOesuVJFn3Tkg3MFYNiudZCfMJqNcF4E",
+      "created": "2026-09-19"
+    }
+  ],
+  "note": "Public keys used to sign recruiting attestations for this domain. Verify an offer or recruiter message at https://datadoghq.com/.well-known/groundtruth.json",
+  "report_abuse": "security@datadoghq.com"
+}

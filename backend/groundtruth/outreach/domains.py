@@ -224,6 +224,21 @@ def check_confusable_with(domain: str, company: str) -> list[Finding]:
         return []
 
     skeleton = _deconfuse(name)
+    bare = re.sub(r"[^a-z0-9]", "", skeleton)
+
+    # A hyphen between words is how most companies spell their own domain --
+    # "Acme Robotics" at acme-robotics.com -- and comparing the separated form
+    # against the normalised name reports an edit distance of one, flagging the
+    # company as imitating itself.
+    #
+    # The test is on the RAW name with separators removed, never the deconfused
+    # one. Whether a match *required* deconfusion is exactly what distinguishes
+    # a legitimate domain from an imitation: 'acme-robotics' matches as typed,
+    # while Cyrillic 'gооgle' only matches after folding, which is the attack.
+    raw_bare = re.sub(r"[^a-z0-9]", "", name.lower())
+    if raw_bare == token:
+        return []
+
     if skeleton == token and name != token:
         return [_f(
             "DOMAIN_CONFUSABLE_IMITATION",
@@ -238,8 +253,8 @@ def check_confusable_with(domain: str, company: str) -> list[Finding]:
             skeleton=skeleton,
         )]
 
-    dist = _edit_distance(skeleton, token)
-    if 0 < dist <= max(1, len(token) // 6) and abs(len(skeleton) - len(token)) <= 2:
+    dist = _edit_distance(bare, token)
+    if 0 < dist <= max(1, len(token) // 6) and abs(len(bare) - len(token)) <= 2:
         return [_f(
             "DOMAIN_TYPOSQUAT",
             f"Domain is one small edit away from '{company}'",
@@ -254,7 +269,7 @@ def check_confusable_with(domain: str, company: str) -> list[Finding]:
 
     # Combosquat: real brand plus a hiring-flavoured word. Separators are
     # stripped first so 'g00gle-careers' and 'googlecareers' both resolve.
-    stripped = re.sub(r"[^a-z0-9]", "", skeleton)
+    stripped = bare
     hit = None
     for tok in COMBO_TOKENS:
         if tok in stripped and stripped.replace(tok, "", 1) == token:
@@ -387,7 +402,8 @@ def analyse(sender: str, claimed_company: str | None = None,
         findings += brand + conf
         if brand or conf or verdict == "lookalike":
             verdict = "lookalike"
-        elif _normalise(claimed_company) in _deconfuse(registrable_parts(domain)[0]):
+        elif _normalise(claimed_company) in re.sub(
+                r"[^a-z0-9]", "", _deconfuse(registrable_parts(domain)[0])):
             verdict = "unverifiable"
         else:
             verdict = "unrelated"

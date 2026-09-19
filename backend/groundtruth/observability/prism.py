@@ -120,6 +120,40 @@ class PrismRecorder:
             return "PRISMTRACE_PROJECT_ID not set — traces recorded locally only."
         return f"PRISM client failed to initialise: {getattr(self, '_init_error', '?')}"
 
+    def _emit_step_traces(self, trace: Trace) -> None:
+        """Also emit per-step traces sharing one session_id.
+
+        The trajectory endpoint records the run; the traces endpoint is what
+        the setup doctor watches for `live_connected`, and it reports
+        `trace_normalized` when traces arrive without a shared session_id. So
+        the run id is used as the session id, which is also what makes the
+        steps group into one conversation in the dashboard.
+
+        The model string is deliberately not a model name. Groundtruth's
+        verification path is fully deterministic -- there is no LLM in it --
+        and labelling these as GPT-anything to make a dashboard look
+        conventional would misrepresent what the system does.
+        """
+        for step in trace.steps:
+            try:
+                self._client.trace_llm(  # type: ignore[union-attr]
+                    model="groundtruth/rules-engine",
+                    input_messages=[{"role": "user",
+                                     "content": step.input_summary or step.label}],
+                    output=step.output_summary or "",
+                    latency_ms=step.duration_ms,
+                    session_id=trace.run_id,
+                    agent_id=self.agent_name,
+                    agent_name=self.agent_name,
+                    metadata={"step_type": step.step_type, "label": step.label,
+                              "tool": step.tool_name or "", "status": step.status,
+                              "deterministic": True},
+                )
+            except Exception:
+                # Step traces are supplementary; never fail a verification over
+                # telemetry.
+                return
+
     def submit(self, trace: Trace, final_status: str = "success") -> Trace:
         if not self.enabled:
             trace.note = self.why_disabled()
@@ -136,6 +170,11 @@ class PrismRecorder:
                 trace.submitted = True
                 trace.trajectory_id = resp.get("trajectory_id") or resp.get("id")
                 trace.note = "Submitted to PRISM."
+                self._emit_step_traces(trace)
+                try:
+                    self._client.flush(timeout=3.0)  # type: ignore[union-attr]
+                except Exception:
+                    pass
             else:
                 trace.note = "PRISM returned no response; trace kept locally."
         except Exception as exc:

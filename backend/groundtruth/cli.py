@@ -159,11 +159,17 @@ def main(argv: list[str] | None = None) -> int:
     ip.add_argument("--days", type=int, default=30)
 
     sub.add_parser("keys", help="show which credentials are configured")
+    sub.add_parser("prism-check",
+                   help="prove the PRISM setup: handshake, live trace, doctor")
 
     dp = sub.add_parser("demo", help="run the built-in demo cases")
     dp.add_argument("--cassettes", default=None)
 
     a = ap.parse_args(argv)
+
+    if a.cmd == "prism-check":
+        from .observability.check import run as prism_run
+        return prism_run()
 
     if a.cmd == "keys":
         from .corroborate.browser import default_browser

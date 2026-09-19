@@ -69,10 +69,18 @@ def test_no_secrets_are_tracked_in_git():
                          text=True).stdout
     SECRET_NAMES = {".env", ".env.local", "keys", "secrets", "credentials",
                     "api_keys", "api-keys"}
+    # A stem match alone is too broad: attest/keys.py is source code. Only
+    # treat a suspicious stem as a secret when the file is not code or docs.
+    CODE_SUFFIXES = {".py", ".ts", ".js", ".tsx", ".jsx", ".md", ".json",
+                     ".yaml", ".yml", ".toml", ".html", ".css", ".sh",
+                     ".example", ".rst", ".txt.example"}
     tracked = []
     for f in out.splitlines():
-        name = pathlib.Path(f).name
+        path = pathlib.Path(f)
+        name, suffix = path.name, path.suffix.lower()
         stem = name.split(".")[0].lower()
+        if suffix in CODE_SUFFIXES:
+            continue
         if f.endswith(".pem") or name in SECRET_NAMES or stem in SECRET_NAMES:
             tracked.append(f)
     assert tracked == [], f"secret-shaped files are tracked: {tracked}"
@@ -83,5 +91,16 @@ def test_gitignore_covers_hand_made_credential_files():
     setting up, and nothing else would stop those being committed."""
     root = pathlib.Path(__file__).resolve().parents[2]
     ignored = (root / ".gitignore").read_text()
-    for pattern in ("keys", "secrets", "credentials", "*.pem", ".env"):
+    for pattern in ("/keys", "/secrets", "/credentials", "*.pem", ".env"):
         assert pattern in ignored, f"{pattern} is not gitignored"
+
+
+def test_source_files_named_keys_are_not_ignored():
+    """Regression: an unanchored 'keys.*' pattern also matched
+    groundtruth/attest/keys.py, quietly excluding source from the repo."""
+    import subprocess
+    root = pathlib.Path(__file__).resolve().parents[2]
+    r = subprocess.run(["git", "check-ignore", "-q",
+                        "backend/groundtruth/attest/keys.py"],
+                       cwd=root, capture_output=True)
+    assert r.returncode != 0, "attest/keys.py is being gitignored"

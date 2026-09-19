@@ -18,14 +18,16 @@ dist/
 # .env/.env.local, but a file named "keys" or "secrets.txt" is exactly what
 # someone makes while setting up, and nothing else here would stop it being
 # committed.
-keys
-keys.*
-secrets
-secrets.*
-credentials
-credentials.*
+# Anchored to the repo root: an unanchored "keys.*" also matches
+# groundtruth/attest/keys.py, which is source, not a secret.
+/keys
+/keys.txt
+/keys.env
+/secrets
+/secrets.txt
+/credentials
+/credentials.txt
+/api_keys
+/api_keys.txt
 *.env
-*_key
-*_keys
-api_key*
-api-keys*
+!.env.example

@@ -41,10 +41,11 @@ a test-suite release gate.*
 | **Predatory practice detection** (3 tiers) | ✅ |
 | **Employer corroboration** — Tavily | ✅ code complete, cassette-replayed |
 | **PRISM tracing** (trajectory per verification) | ✅ code complete, needs key |
+| **Offer-letter tampering** (font/overlay/provenance) | ✅ |
 | Solari (live careers-page check) | ⬜ next |
 | Candidate-facing UI | ⬜ next |
 
-**55 tests passing.** Run the demo:
+**67 tests passing.** Run the demo:
 
 ```bash
 git clone -b claude/tender-lovelace-4vgxta https://github.com/divyanshmaurya/hackathon_nyu
@@ -158,6 +159,24 @@ backend/groundtruth/
   observability/  # PRISM tracing, guardrails, evaluators
 samples/          # adversarial + control corpus
 ```
+
+## Forged offer letters
+
+A fake offer letter is rarely written from scratch — it's a real one with the
+name and salary swapped. That edit almost never inherits the original's exact
+font, so we don't ask "does this look fake?", we ask a checkable question:
+*is one span typographically inconsistent with the document's body style?*
+
+```
+03_name_tampered.pdf    'Priya Raghavan'  [Courier 11.5pt]  vs body [Helvetica 11.0pt]
+02_salary_tampered.pdf  '$310,000'        [Times-Roman 12pt] vs body [Helvetica 11.0pt]
+04_whiteout_overlay.pdf 'salary will be $185,000' ⟷ '$295,000'   (both recoverable)
+```
+
+`05_control_hand_filled.pdf` is the release gate: a small employer filling a
+template by hand leaves the *same* fingerprint for an innocent reason. It comes
+back **clean**, and the wording never says fraud — it reports the edit and
+states plainly that this "shows an edit, not who made it or why."
 
 ## Why this beats AI-detection where it counts
 

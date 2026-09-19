@@ -11,7 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from . import injection, unicode_checks
+from . import injection, tampering, unicode_checks
 from .findings import Finding, Layer, Severity
 from .pdf_layers import PdfLayers, extract as extract_pdf
 
@@ -164,6 +164,11 @@ def scan_pdf(path_or_bytes: str | bytes) -> IntegrityReport:
     findings += injection.scan(layers.hidden_text, Layer.HIDDEN)
     findings += injection.scan(layers.metadata_text, Layer.METADATA)
     findings += injection.scan(layers.visible_text, Layer.VISIBLE)
+
+    # Post-production edits: font inconsistency, overlays, provenance.
+    findings += tampering.check_font_consistency(layers.spans)
+    findings += tampering.check_overlays(layers.spans)
+    findings += tampering.check_provenance(layers.metadata)
 
     verdict, headline = _decide(findings)
 

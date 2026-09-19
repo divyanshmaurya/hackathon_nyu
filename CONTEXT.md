@@ -92,6 +92,9 @@ All of this works and is tested. Nothing below is a stub.
   the streaming one. `verify_iter()` is the generator both are built on;
   `verify()` drains it, so non-streaming callers are unaffected
 - `cli.py` — `verify`, `demo`, `keys`, `keygen`, `issue`, `prism-check`
+- The page carries a hero stating the problem with cited figures, a live check
+  list, and a closing "what to do now" block with reporting links and a
+  copy-to-clipboard report for forwarding to a school's ISSS office
 - `observability/` — PRISM tracing and the setup verifier
 
 ### Sponsor integrations — all three live-verified
@@ -148,6 +151,18 @@ is deterministic — there is no LLM in it. Relabelling as a real model to make
 the dashboard look conventional would misrepresent the system. Asserted by a
 test.
 
+**A tick means evidence, not completion — the same rule, in UI form.** The
+live checklist shows green only for checks that confirmed something positive. A
+check that finished without confirming anything stays neutral, and skipped
+checks are shown rather than hidden. The first version put a green tick beside
+*"unverifiable"*, which told the reader the opposite of the truth. If you touch
+`markStage()` in `static/index.html`, keep this.
+
+**Progress events are real.** `verify_iter()` yields as each check finishes and
+the page renders those events. Replaying a finished result on a timer would
+have been simpler and would have been theatre dressed as instrumentation — an
+especially bad thing to ship in a product about verification.
+
 **Absence of evidence is never evidence.** `OfflineTransport`,
 `OfflineBrowser` and `OfflineResolver` raise rather than return empty. Reporting
 "nothing found" when nothing was checked is the most dangerous bug available
@@ -172,6 +187,7 @@ Do not reintroduce these. Each has a regression test.
 | Attestation findings absent from the API response | UI rendered a CRITICAL verdict with the critical finding invisible |
 | `registrable_parts` split IP literals into `("0","1")` | Nonsense comparisons against company names |
 | A MEDIUM result matched no summary branch | "Worth a second look" read as "nothing alarming found" |
+| Green tick shown beside a check that confirmed nothing | The UI said "verified" where the engine said "unverifiable" |
 | `default_browser` claimed a backend without checking the client library was importable | Would fail at render time on serverless instead of up front |
 | Unanchored `keys.*` gitignore pattern | Also matched `attest/keys.py` — real source, silently excluded |
 | 15s PRISM flush on a 10s serverless cap | Would time out the response, losing both trace and answer |
@@ -214,7 +230,7 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -r backend/requirements.txt
 python3 -m playwright install chromium     # only if not using Solari
 
-cd backend && python3 -m pytest tests -q   # 135 passing
+cd backend && python3 -m pytest tests -q   # 139 passing
 python3 -m uvicorn app:app --port 8000     # http://127.0.0.1:8000
 ```
 

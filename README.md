@@ -163,6 +163,30 @@ datadoghq.com"* — the trust signal laundering a scam.
 
 ---
 
+### The page itself
+
+The result is not a score. It is an ordered account of what happened.
+
+**Checks report live as they finish.** `POST /api/verify/stream` returns
+newline-delimited JSON — one real event per check, emitted when that check
+completes. This is built on `verify_iter()`, a generator; `verify()` drains it
+and returns the whole result, so non-streaming callers are unaffected. Nothing
+is replayed on a timer.
+
+**A tick means evidence, not completion.** Green is reserved for checks that
+confirmed something positive. A check that finished without confirming anything
+stays neutral, because a green tick beside *"unverifiable"* tells the reader the
+opposite of the truth. Skipped checks are shown rather than hidden, so "never
+checked" stays distinguishable from "checked and clean".
+
+**Every result ends with what to do now** — ordered steps, reporting links
+([FTC](https://reportfraud.ftc.gov/), [IC3](https://www.ic3.gov/),
+[BBB](https://www.bbb.org/scamtracker)), and a copy-to-clipboard report a
+student can paste into an email to their international student office. When
+something unlawful was asked for, the visa advice comes second and says why:
+the consequences of a fabricated employment record fall on the student, not on
+the consultancy.
+
 ## Status
 
 **139 tests passing.** All three sponsor integrations live-verified.
@@ -177,7 +201,8 @@ datadoghq.com"* — the trust signal laundering a scam.
 | Careers-page check — **Solari** | ✅ live |
 | Tracing — **PRISM** | ✅ live |
 | Signed attestations | ✅ |
-| Web UI + CLI | ✅ |
+| Web UI (live progress, actions, reporting links) | ✅ |
+| CLI (`verify` · `demo` · `keys` · `keygen` · `issue` · `prism-check`) | ✅ |
 | Vercel deployment | ✅ (careers check excluded — see below) |
 
 ```
@@ -225,6 +250,14 @@ Everything runs without keys: corroboration replays cassettes, tracing records
 locally, the browser falls back to local Chromium. The loader refuses RTF files
 (TextEdit's default) rather than parsing them into plausible garbage.
 
+### API
+
+| Endpoint | Returns |
+|---|---|
+| `POST /api/verify` | the complete result as JSON |
+| `POST /api/verify/stream` | newline-delimited JSON, one event per check as it finishes |
+| `GET /api/health` | which integrations are live, and `can_browse` |
+
 ### CLI
 
 ```bash
@@ -250,7 +283,7 @@ backend/groundtruth/
   verify.py       orchestration
   cli.py          command line
 backend/app.py    FastAPI service      backend/static/  candidate-facing UI
-backend/tests/    135 tests + cassettes, fixtures, demo registry
+backend/tests/    139 tests + cassettes, fixtures, demo registry
 samples/          adversarial + control corpora (resumes, offer letters)
 api/ vercel.json  serverless deployment
 ```

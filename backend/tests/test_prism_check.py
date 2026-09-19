@@ -81,3 +81,47 @@ def test_standing_prism_rule_is_present_for_the_next_agent():
     assert "## PRISM tracing (do not remove)" in text
     assert "Standing rule." in text
     assert "PRISMTRACE_API_KEY" in text
+
+
+def test_only_substantive_steps_are_traced(monkeypatch):
+    """Bookkeeping steps tripled the request count for no added signal and
+    pushed the tail of the flush past its window."""
+    sent = []
+
+    class FakeClient:
+        def trace_llm(self, **kw): sent.append(kw)
+        def flush(self, timeout=0): pass
+
+    r = PrismRecorder.__new__(PrismRecorder)
+    r.agent_name = "test"
+    r._client = FakeClient()
+
+    t = Trace()
+    t.step("reasoning", "bookkeeping only")            # 0ms, not a tool call
+    t.tool("tavily.search", "real work", ms=120)
+    t.step("final_answer", "summary", duration_ms=5)
+    r._emit_step_traces(t)
+
+    labels = [s["metadata"]["label"] for s in sent]
+    assert "real work" in labels
+    assert "summary" in labels
+    assert "bookkeeping only" not in labels
+
+
+def test_every_emitted_trace_shares_the_run_as_session_id():
+    """Without a shared session_id the doctor reports trace_normalized and the
+    steps never group into one trajectory."""
+    sent = []
+
+    class FakeClient:
+        def trace_llm(self, **kw): sent.append(kw)
+        def flush(self, timeout=0): pass
+
+    r = PrismRecorder.__new__(PrismRecorder)
+    r.agent_name = "test"
+    r._client = FakeClient()
+    t = Trace()
+    t.tool("a", "one", ms=1)
+    t.tool("b", "two", ms=2)
+    r._emit_step_traces(t)
+    assert {s["session_id"] for s in sent} == {t.run_id}

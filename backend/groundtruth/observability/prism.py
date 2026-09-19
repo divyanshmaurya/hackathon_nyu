@@ -101,6 +101,10 @@ class PrismRecorder:
                     api_key=self.api_key,
                     host=resolve_host(self.host),
                     project_id=self.project_id,
+                    # The default 10s is per-request; a run emits a trajectory
+                    # plus one trace per step, and the tail of those was timing
+                    # out on a cold connection.
+                    timeout=30,
                 )
             except Exception as exc:  # pragma: no cover - depends on env
                 self._client = None
@@ -134,7 +138,12 @@ class PrismRecorder:
         and labelling these as GPT-anything to make a dashboard look
         conventional would misrepresent what the system does.
         """
-        for step in trace.steps:
+        # Only steps that did real work. Emitting a trace for bookkeeping
+        # steps triples the request count for no added signal, which is what
+        # was pushing the tail past the flush window.
+        worth_tracing = [s for s in trace.steps
+                         if s.step_type == "tool_call" or s.duration_ms > 0]
+        for step in worth_tracing:
             try:
                 self._client.trace_llm(  # type: ignore[union-attr]
                     model="groundtruth/rules-engine",
@@ -172,8 +181,12 @@ class PrismRecorder:
                 trace.note = "Submitted to PRISM."
                 self._emit_step_traces(trace)
                 try:
-                    self._client.flush(timeout=3.0)  # type: ignore[union-attr]
+                    # Generous: the process may exit right after this, and an
+                    # unflushed trace is simply lost.
+                    self._client.flush(timeout=15.0)  # type: ignore[union-attr]
                 except Exception:
+                    # A telemetry flush must never fail a verification. The
+                    # trajectory is already accepted at this point.
                     pass
             else:
                 trace.note = "PRISM returned no response; trace kept locally."

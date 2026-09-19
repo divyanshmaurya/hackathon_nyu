@@ -48,7 +48,7 @@ a test-suite release gate.*
 | **Careers-page verification** — Solari | ✅ logic tested, remote transport needs key |
 | **Candidate-facing web UI** (FastAPI + single page) | ✅ |
 
-**116 tests passing.**
+**131 tests passing.**
 
 ### Run the web app
 
@@ -74,7 +74,26 @@ python3 -m groundtruth.cli demo
 (If `python3 -m groundtruth.cli` says "No module named groundtruth", run it from
 the `backend/` directory, or `export PYTHONPATH=$PWD/backend`.)
 
-### ⚠️ Sponsor APIs are blocked from this build environment
+### Verified live
+
+All three sponsor integrations have been confirmed working against real
+endpoints from a developer machine:
+
+```
+$ python3 -m groundtruth.cli prism-check
+  1/3  handshake …
+       CREDENTIAL OK — credential valid, synthetic trace stored
+  2/3  emitting a live trace from a real verification …
+       run 2907ea94 · 5 steps · verdict critical · Submitted to PRISM.
+  3/3  re-checking the doctor …
+       live_connected=True  blocked_step=-  overall=connected
+  LIVE CONNECTED
+```
+
+Tavily performs the employer lookup live, Solari is the active browser backend,
+and PRISM receives a trajectory plus per-step traces for every verification.
+
+### ⚠️ Sponsor APIs are blocked from the CI/build environment
 
 `api.tavily.com`, `api.prism.blockconvey.com` and `*.getsolari.com` all return
 **403 from the egress proxy** — an organisation network policy, not a missing

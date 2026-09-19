@@ -1,7 +1,15 @@
 # Groundtruth — instructions for coding agents
 
-Verification tooling for job seekers. See `README.md` for what it does and
-`docs/` for the reasoning behind each part.
+Verification tooling for job seekers.
+
+**Start with [`CONTEXT.md`](CONTEXT.md).** It carries the project history: what
+was decided and rejected (the framing changed three times — do not re-litigate
+it), which design choices are load-bearing, which bugs are already paid for,
+and what is deliberately unbuilt. This file carries the rules; that one carries
+the reasons.
+
+Then `README.md` for what it does, and `docs/` for the reasoning behind each
+part.
 
 ## House rules
 

@@ -1,250 +1,285 @@
 # Groundtruth
 
 **Verify who is recruiting you, before you hand over anything.**
-— NYU Hiring Trust Hackathon
 
-> **Verification, not detection.**
-> We never ask "was this written by AI?" — unanswerable, and it punishes honest
-> people. We ask "is any of this real?", which gets *easier* as models improve.
-> Fabrication is cheap; corroboration is expensive.
+NYU Hiring Trust Hackathon — **Side B: impersonation and candidate scams**
 
-**Who it's for:** job seekers facing recruiter outreach they have no way to
-check — sharpest for international students on F-1/OPT, where the consequence of
-a bad intermediary isn't a wasted week, it's their immigration status. Students
-are charged [up to $2,000 for fabricated work
-experience](https://www.m9.news/usa-news/f1-student-scam-fake-job-companies/) by
-firms that then vanish; one operator alone [faked employment verification for
-2,500+ F-1
+> 🤖 **Coding agents:** read [`CONTEXT.md`](CONTEXT.md) first for project
+> history and reasoning, then [`CLAUDE.md`](CLAUDE.md) for the binding house
+> rules.
+
+---
+
+## The problem
+
+Hiring has a trust crisis on both sides. Most tooling protects employers,
+because employers can pay. The people actually losing money and legal status
+are job seekers.
+
+Job scam losses reported to the FTC rose from [$90M in 2020 to $501M in
+2024](https://cw33.com/news/local/job-scams-result-in-150-4-million-losses-ftc-reports/).
+BBB employment-scam reports [doubled in 2025 to
+23,234](https://theworlddata.com/employment-scam-statistics-in-us/). [One in
+four people who job-hunted in 2025 reported falling victim to a hiring
+scam](https://techbullion.com/job-scam-statistics-fbi-ftc-data/). Every tell
+people were taught to look for is gone: scammers now send [AI-generated offer
+letters and run deepfake video
+interviews](https://techbullion.com/job-scam-statistics-fbi-ftc-data/).
+
+**The sharpest case is international students on F-1/OPT.** Consultancies
+charge them [up to $2,000 for fabricated work
+experience](https://www.m9.news/usa-news/f1-student-scam-fake-job-companies/),
+collect from dozens, and vanish. One operator alone [faked employment
+verification for 2,500+ F-1
 students](https://www.boundless.com/blog/identify-h-1b-fraud-fake-opt-candidates).
 The consultancy keeps the money. The student [can be detained or removed years
 later](https://www.greatandhra.com/articles/special-articles/opt-under-fire-again-as-us-claims-major-student-visa-fraud/)
-— sometimes without ever knowing the record was false.
+— sometimes never having known the record was false.
 
-Every part of that harm is deferred and invisible at the moment of decision.
-Our job is to move the information to that moment.
+Every part of that harm is **deferred, invisible, and irreversible at the
+moment it matters.** The job of a verification tool is to move the information
+to that moment.
 
-**What we refuse to do:** label anyone "a scam." We report what is *verifiable*
-about a sender, and what the message is *asking you to do* — sorted into
-illegal, harmful, and context. Many intermediaries are legitimate; a tool that
-flags all of them protects nobody. *Ordinary agency outreach returning clean is
-a test-suite release gate.*
+## The thesis
 
-- Thesis and architecture → [`docs/PRODUCT.md`](docs/PRODUCT.md)
-- Audience, distribution, sustainability → [`docs/MARKET.md`](docs/MARKET.md)
-- The employer trust signal → [`docs/ATTESTATION.md`](docs/ATTESTATION.md)
-- Careers-page verification → [`docs/SOLARI.md`](docs/SOLARI.md)
-- Deploying → [`docs/DEPLOY.md`](docs/DEPLOY.md)
+> **Verification, not detection.**
 
-## Status
+We never ask *"was this written by AI?"* — unanswerable, getting worse monthly,
+and it correlates with non-native English writing, so acting on it punishes
+honest people. We ask *"is any of this real?"*, which gets **easier** as models
+improve.
 
-| Component | State |
-|---|---|
-| **Document integrity** (offer letters, resumes) | ✅ |
-| **Sender impersonation** (look-alike domains) | ✅ |
-| **Predatory practice detection** (3 tiers) | ✅ |
-| **Employer corroboration** — Tavily | ✅ code complete, cassette-replayed |
-| **PRISM tracing** (trajectory per verification) | ✅ code complete, needs key |
-| **Offer-letter tampering** (font/overlay/provenance) | ✅ |
-| **Signed employer attestations** (Ed25519, domain-anchored) | ✅ |
-| **Careers-page verification** — Solari | ✅ logic tested, remote transport needs key |
-| **Candidate-facing web UI** (FastAPI + single page) | ✅ |
+A model writes a flawless scam email in four seconds. It cannot make a domain
+older than it is, forge a signature it lacks the key for, or publish a job on a
+company's real careers page.
 
-**134 tests passing.**
+**Fabrication is cheap. Corroboration is expensive.**
 
-### Run the web app
+## What it refuses to do
 
-```bash
-cd hackathon_nyu/backend
-pip3 install --user -r requirements.txt
-python3 -m uvicorn app:app --port 8000
-```
+1. **Never labels an organisation a scam.** It reports what is verifiable and
+   what a message asks of you. Tests assert the words "fraud", "fake" and
+   "scam" never appear in specific findings.
+2. **Never treats absence of evidence as evidence.** Every check distinguishes
+   passed / failed / *did not run*. The offline paths raise rather than return
+   empty.
+3. **Never flags honest people.** Each detector ships with a benign control that
+   must come back clean — a resume in Russian, an Arabic name, a security
+   engineer who writes about prompt injection, a hand-filled offer template,
+   ordinary agency outreach. These are release gates.
 
-Open <http://127.0.0.1:8000>. Three one-click examples are built in. Attach
-`samples/offers/03_name_tampered.pdf` to any of them to see document forensics
-run alongside the sender check.
+---
 
-### Or the CLI
+## What it does
 
-```bash
-git clone -b claude/tender-lovelace-4vgxta https://github.com/divyanshmaurya/hackathon_nyu
-cd hackathon_nyu
-pip3 install --user -r backend/requirements.txt
-python3 -m groundtruth.cli demo
-```
+Six independent checks, tiered by what they mean rather than blended into a
+score.
 
-(If `python3 -m groundtruth.cli` says "No module named groundtruth", run it from
-the `backend/` directory, or `export PYTHONPATH=$PWD/backend`.)
+| Check | Question | Powered by |
+|---|---|---|
+| **Sender impersonation** | Is this domain the company's, or a confusable imitation? | — |
+| **Predatory practices** | What is this message asking you to *do*? | — |
+| **Employer corroboration** | Does this company exist, and what is its real domain? | **Tavily** |
+| **Document integrity** | Was this offer letter edited, or weaponised? | — |
+| **Careers-page listing** | Is this role listed where the company lists roles? | **Solari** |
+| **Signed attestation** | Did this genuinely come from the employer? | Ed25519 |
 
-### Verified live
+Every run is traced to **PRISM**, so "why was this flagged" stays answerable.
 
-All three sponsor integrations have been confirmed working against real
-endpoints from a developer machine:
+### Sender impersonation
 
 ```
-$ python3 -m groundtruth.cli prism-check
-  1/3  handshake …
-       CREDENTIAL OK — credential valid, synthetic trace stored
-  2/3  emitting a live trace from a real verification …
-       run 2907ea94 · 5 steps · verdict critical · Submitted to PRISM.
-  3/3  re-checking the doctor …
-       live_connected=True  blocked_step=-  overall=connected
-  LIVE CONNECTED
+careers@google.com  (verified)      matches_claim   info
+recruiter@gооgle.com  (Cyrillic)    lookalike       CRITICAL  confusable imitation
+hr@google.com.hiring-portal.xyz     lookalike       CRITICAL  → real owner: hiring-portal.xyz
+jobs@googlecareers.com              lookalike       HIGH      combosquat
+hr@gogle.com                        lookalike       HIGH      typosquat
+talent@apexrecruiting.com           unrelated       MEDIUM    (not an accusation)
 ```
 
-Tavily performs the employer lookup live, Solari is the active browser backend,
-and PRISM receives a trajectory plus per-step traces for every verification.
+Homoglyph folding collapses `g00gle`, Cyrillic `gооgle` and `google` to one
+skeleton. The brand-in-subdomain finding is the one that helps most: it names
+who *actually* controls the mail.
 
-### ⚠️ Sponsor APIs are blocked from the CI/build environment
+### Predatory practices
 
-`api.tavily.com`, `api.prism.blockconvey.com` and `*.getsolari.com` all return
-**403 from the egress proxy** — an organisation network policy, not a missing
-key. The integrations are written against the real SDK signatures and run live
-the moment they execute somewhere with network access.
+Three strictly separated tiers, because conflating them is how a legal-but-bad
+practice gets called fraud and a genuinely illegal one gets buried:
 
-To go live, on a machine with internet:
+- **Not lawful for an employer to ask** — candidate fees, shifting H-1B costs to
+  the worker, fabricated employment records, money-mule requests
+- **Puts you at risk** — SSN or passport before an offer, unpaid "bench",
+  untraceable payment, exclusivity before the client is named, submission
+  without consent
+- **Worth knowing** — unnamed employer, undisclosed rate
 
-**Put your keys in a `.env` file — never in the repository.** Committed keys
-get scraped within minutes and survive in git history after you delete them.
+Timing matters: "send your SSN" is `CRITICAL` before an offer and `LOW` once a
+signed offer is in the thread.
 
-```bash
-cp .env.example .env
-```
+### Document integrity
 
-Open `.env`, paste the values after each `=`, save. `.env` is gitignored.
-Verify with:
-
-```bash
-cd backend && python3 -m groundtruth.cli keys
-```
-
-Or, if you prefer shell exports, paste one line at a time — **no trailing `#`
-comments**, since zsh does not treat `#` as a comment interactively and will
-error.
-
-```bash
-export TAVILY_API_KEY=tvly-YOUR-REAL-KEY
-export PRISMTRACE_API_KEY=YOUR-REAL-KEY
-export PRISMTRACE_PROJECT_ID=YOUR-PROJECT-ID
-export GROUNDTRUTH_RECORD_DIR=$PWD/backend/tests/cassettes
-python3 -m groundtruth.cli verify --from careers@dataddoghq.com --company Datadog
-```
-
-Keys: Tavily at `app.tavily.com/redeem/HIRINGHACK`; PRISM at
-`prism.blockconvey.com/signup` (coupon `HACKBUILDER#3`, key under
-Settings → API Keys).
-
-Until then `CassetteTransport` replays fixtures through the identical code
-path, and `OfflineTransport` **refuses** rather than reporting a clean result —
-telling a job seeker "nothing found" when nothing was checked is the most
-dangerous bug this tool could have, so it is a tested release gate.
-
-## What works today
-
-A fully deterministic scanner that detects weaponised resumes — and, just as
-importantly, does not flag honest ones.
+The core idea: **severity is a function of which document layer text lives in,
+not of the text itself.**
 
 ```
-$ python3 -m pytest backend/tests -q
-21 passed
+"ignore all previous instructions", hidden in 1pt white text  →  CRITICAL
+"ignore all previous instructions", in a visible bullet       →  INFO
 ```
 
-| Sample | Verdict |
-|---|---|
-| `01_clean.pdf` | clean |
-| `02_white_text_injection.pdf` | **manipulated** — white-on-white payload recovered |
-| `03_tiny_font_injection.pdf` | **manipulated** — 0.6pt text |
-| `04_offpage_injection.pdf` | **manipulated** — rendered outside the page |
-| `05_render_mode_3.pdf` | **manipulated** — PDF invisible-text flag |
-| `06_metadata_injection.pdf` | **manipulated** — payload in XMP metadata |
-| `07_control_security_engineer.pdf` | clean ← *discusses prompt injection openly* |
-| `08_keyword_stuffing.pdf` | **manipulated** — hidden ATS keyword block |
+The second is a security engineer describing their job. Every naive keyword
+detector flags them; we return clean. Also detects Unicode Tag-block ASCII
+smuggling (invisible to every renderer, intact for every LLM), zero-width
+carriers, Trojan-Source bidi, and homoglyph filter evasion.
 
-Row 7 is the one that matters commercially. That resume contains the string
-*"ignore all previous instructions"* in plain sight, because the candidate
-builds defences against it for a living. Every naive keyword detector flags
-them. We return **clean**, because severity is a function of *which layer of
-the document* the text lives in — concealment is what establishes intent.
-
-```
-same string, hidden in 1pt white text  ->  CRITICAL
-same string, visible in a bullet point ->  INFO (shown, never counted against)
-```
-
-Also detects: Unicode Tag-block ASCII smuggling (invisible to every renderer,
-intact for every LLM), zero-width carriers, Trojan-Source bidi overrides, and
-homoglyph filter evasion — each with benign-case controls so a resume written
-in Russian or carrying an Arabic name is never flagged.
-
-## Quickstart
-
-```bash
-pip install -r backend/requirements.txt
-python3 samples/make_samples.py          # regenerate the corpus
-python3 -m pytest backend/tests -q
-```
-
-Scan a document:
-
-```python
-from groundtruth.integrity import scan_pdf
-
-report = scan_pdf("samples/resumes/02_white_text_injection.pdf")
-print(report.verdict)        # -> "manipulated"
-print(report.hidden_text)    # -> the recovered payload
-for f in report.findings:
-    print(f.severity.value, f.code, f.evidence)
-```
-
-## Layout
-
-```
-backend/groundtruth/
-  integrity/      # deterministic document forensics  [done]
-    findings.py     evidence model + severity ordering
-    unicode_checks.py  tag-block, zero-width, bidi, homoglyphs
-    injection.py       layer-aware machine-directed instruction detection
-    pdf_layers.py      splits what a human sees from what a parser sees
-    scanner.py         orchestration + verdict
-  claims/         # resume -> atomic checkable claims
-  corroborate/    # Tavily · Solari · GitHub evidence gathering
-  distinct/       # pool-level template-collapse analysis
-  observability/  # PRISM tracing, guardrails, evaluators
-samples/          # adversarial + control corpus
-```
-
-## Forged offer letters
-
-A fake offer letter is rarely written from scratch — it's a real one with the
-name and salary swapped. That edit almost never inherits the original's exact
-font, so we don't ask "does this look fake?", we ask a checkable question:
-*is one span typographically inconsistent with the document's body style?*
+**Forged offer letters** are usually real ones with fields swapped, and
+replacement text rarely inherits the original font:
 
 ```
 03_name_tampered.pdf    'Priya Raghavan'  [Courier 11.5pt]  vs body [Helvetica 11.0pt]
 02_salary_tampered.pdf  '$310,000'        [Times-Roman 12pt] vs body [Helvetica 11.0pt]
 04_whiteout_overlay.pdf 'salary will be $185,000' ⟷ '$295,000'   (both recoverable)
+05_control_hand_filled.pdf                                        clean ← release gate
 ```
 
-`05_control_hand_filled.pdf` is the release gate: a small employer filling a
-template by hand leaves the *same* fingerprint for an innocent reason. It comes
-back **clean**, and the wording never says fraud — it reports the edit and
-states plainly that this "shows an edit, not who made it or why."
+### Signed attestations
 
-## Why this beats AI-detection where it counts
+Employers publish an Ed25519 public key at
+`https://company.com/.well-known/groundtruth.json` and sign their outreach.
+**The trust anchor is the employer's domain, not us** — if this project
+disappeared, every attestation stays verifiable. We are a format, not an
+authority.
 
-The clearest case is the one our customers are most afraid of. A North Korean
-IT operative's resume is *excellent* — well written, plausible, correctly
-targeted, often better than a real candidate's. Every AI-writing detector on
-the market returns "human."
+The property that makes it safe: a signature is **bound to the sender**.
 
-What breaks the cover is never the prose. It's corroboration: a GitHub account
-with four months of history, an employer that resolves to no real domain, no
-public footprint before 2024. Detection loses; verification wins. That is the
-entire company.
+```
+a.chen@datadoghq.com          →  INFO      signed by datadoghq.com
+hr@jobs.datadoghq.com         →  INFO      subdomain accepted
+hr@careers-portal-intl.com    →  CRITICAL  "real signature — but not sent by them"
+```
 
-## Design constraints
+Same valid signature, opposite verdict. Without that binding, a leaked token
+would let a scammer's message be labelled *"cryptographically signed by
+datadoghq.com"* — the trust signal laundering a scam.
 
-1. No AI-writing score. Ever.
-2. No auto-reject — Groundtruth re-orders a queue and attaches evidence.
-3. Three axes stay three axes; never blended into one number.
-4. `UNVERIFIABLE` is grey, never red. Most honest people are hard to Google.
+---
+
+## Status
+
+**135 tests passing.** All three sponsor integrations live-verified.
+
+| Component | State |
+|---|---|
+| Document integrity + injection detection | ✅ |
+| Offer-letter tampering | ✅ |
+| Sender impersonation | ✅ |
+| Predatory practices (3 tiers) | ✅ |
+| Employer corroboration — **Tavily** | ✅ live |
+| Careers-page check — **Solari** | ✅ live |
+| Tracing — **PRISM** | ✅ live |
+| Signed attestations | ✅ |
+| Web UI + CLI | ✅ |
+| Vercel deployment | ✅ (careers check excluded — see below) |
+
+```
+$ python3 -m groundtruth.cli prism-check
+  CREDENTIAL OK — credential valid, synthetic trace stored
+  run 2907ea94 · 5 steps · verdict critical · Submitted to PRISM.
+  live_connected=True  blocked_step=-  overall=connected
+  LIVE CONNECTED
+```
+
+> **Note for CI and cloud build environments.** Some networks block the sponsor
+> APIs with a **403 on CONNECT**. That is an egress policy, not a broken
+> integration. Everything runs offline via recorded cassettes, local fixtures
+> and local Chromium.
+
+---
+
+## Quickstart
+
+```bash
+git clone -b claude/tender-lovelace-4vgxta https://github.com/divyanshmaurya/hackathon_nyu
+cd hackathon_nyu
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r backend/requirements.txt
+python3 -m playwright install chromium     # only if not using Solari
+
+cd backend && python3 -m pytest tests -q   # 135 passing
+python3 -m uvicorn app:app --port 8000
+```
+
+Open <http://127.0.0.1:8000>. Five one-click examples; **"Signed by the
+employer"** then **"Stolen signature"** is the strongest pair. Attach
+`samples/offers/03_name_tampered.pdf` to see document forensics run alongside.
+
+### Credentials
+
+**In a gitignored `.env`, never in the repository.**
+
+```bash
+cp .env.example .env     # then fill it in
+cd backend && python3 -m groundtruth.cli keys
+```
+
+Everything runs without keys: corroboration replays cassettes, tracing records
+locally, the browser falls back to local Chromium. The loader refuses RTF files
+(TextEdit's default) rather than parsing them into plausible garbage.
+
+### CLI
+
+```bash
+python3 -m groundtruth.cli demo                 # the built-in cases
+python3 -m groundtruth.cli verify --from hr@example.com --company "Datadog" \
+        --role "Senior Software Engineer" --check-posting
+python3 -m groundtruth.cli keygen --domain yourcompany.com    # employer side
+python3 -m groundtruth.cli issue  --domain yourcompany.com --key … --role … --recruiter …
+python3 -m groundtruth.cli prism-check          # prove tracing end to end
+```
+
+---
+
+## Layout
+
+```
+backend/groundtruth/
+  integrity/      document forensics — layers, Unicode, injection, tampering
+  outreach/       sender impersonation, predatory-practice detection
+  corroborate/    Tavily employer lookup, Solari careers-page check, transports
+  attest/         Ed25519 attestations, keys, domain-anchored resolution
+  observability/  PRISM tracing and the setup verifier
+  verify.py       orchestration
+  cli.py          command line
+backend/app.py    FastAPI service      backend/static/  candidate-facing UI
+backend/tests/    135 tests + cassettes, fixtures, demo registry
+samples/          adversarial + control corpora (resumes, offer letters)
+api/ vercel.json  serverless deployment
+```
+
+## Documentation
+
+| Document | Contents |
+|---|---|
+| [`CONTEXT.md`](CONTEXT.md) | **Handoff** — history, decisions, fixed bugs, what's next |
+| [`CLAUDE.md`](CLAUDE.md) | House rules, binding on coding agents |
+| [`docs/PRODUCT.md`](docs/PRODUCT.md) | Thesis, axes, architecture |
+| [`docs/MARKET.md`](docs/MARKET.md) | Audience, citations, sustainability, non-goals |
+| [`docs/ATTESTATION.md`](docs/ATTESTATION.md) | The trust signal and why it is domain-anchored |
+| [`docs/SOLARI.md`](docs/SOLARI.md) | Careers-page verification, why a browser is required |
+| [`docs/DEPLOY.md`](docs/DEPLOY.md) | Vercel and container hosts |
+
+## Deployment
+
+Vercel works — `vercel.json` and `api/index.py` are in place. The careers-page
+check does not run there: `playwright` and `solari-browser` are ~277MB
+together, over the 250MB function limit, and bundle browser drivers a
+serverless function cannot execute anyway. The deployment says so rather than
+failing obscurely (`/api/health` → `can_browse: false`).
+
+For the complete product, use a container host — Render, Railway or Fly. See
+[`docs/DEPLOY.md`](docs/DEPLOY.md).
+
+## Built with
+
+Python · FastAPI · PyMuPDF · cryptography (Ed25519) ·
+**[Tavily](https://tavily.com)** · **[Solari](https://getsolari.com)** ·
+**[PRISM](https://prism.blockconvey.com)** · Playwright

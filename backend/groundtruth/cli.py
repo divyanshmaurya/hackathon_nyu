@@ -135,6 +135,11 @@ def main(argv: list[str] | None = None) -> int:
                     help="your own email, to check the attestation was issued for you")
     vp.add_argument("--registry", default=None,
                     help="local directory of well-known key documents (demo/testing)")
+    vp.add_argument("--role", default=None,
+                    help="job title, to check it is listed on the careers page")
+    vp.add_argument("--check-posting", action="store_true",
+                    help="render the employer's careers page (uses Solari, or a "
+                         "local browser if no SOLARI_API_KEY is set)")
     vp.add_argument("--json", action="store_true")
 
     kp = sub.add_parser("keygen",
@@ -196,6 +201,7 @@ def main(argv: list[str] | None = None) -> int:
     rs = LocalRegistry(a.registry) if a.registry else default_resolver()
     v = verify(a.sender, msg, a.company, document_path=a.document,
                attestation=a.attestation, recipient_email=a.me,
+               role=a.role, check_posting_page=a.check_posting,
                transport=tp, resolver=rs)
     print(json.dumps(v.to_dict(), indent=2) if a.json else render(v))
     return 2 if v.max_severity >= Severity.HIGH else 0

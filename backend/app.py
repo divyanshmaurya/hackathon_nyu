@@ -38,10 +38,12 @@ def _transport():
 
 @app.get("/api/health")
 def health() -> dict:
+    from groundtruth.corroborate.browser import default_browser
     t = _transport()
     return {
         "ok": True,
         "corroboration": "live" if t.live else type(t).__name__,
+        "browser": default_browser().engine,
         "prism": "enabled" if _recorder.enabled else _recorder.why_disabled(),
     }
 
@@ -53,6 +55,8 @@ async def api_verify(
     company: str = Form(""),
     attestation: str = Form(""),
     me: str = Form(""),
+    role: str = Form(""),
+    check_posting: bool = Form(False),
     document: UploadFile | None = File(None),
 ) -> JSONResponse:
     tmp_path = None
@@ -70,6 +74,8 @@ async def api_verify(
             document_path=tmp_path,
             attestation=(attestation.strip() or None),
             recipient_email=(me.strip() or None),
+            role=(role.strip() or None),
+            check_posting_page=bool(check_posting),
             transport=_transport(),
             recorder=_recorder,
             resolver=(LocalRegistry(REGISTRY) if REGISTRY.is_dir()

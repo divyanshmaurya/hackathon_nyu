@@ -106,6 +106,11 @@ def registrable_parts(domain: str) -> tuple[str, str]:
     bits = domain.split(".")
     if len(bits) < 2:
         return domain, ""
+    # An IP literal has no registrable name; splitting it on dots yields
+    # nonsense like ("0", "1") for 127.0.0.1 and then compares that against a
+    # company name.
+    if all(b.isdigit() for b in bits):
+        return domain, ""
     # Handle the common two-part public suffixes without pulling in the full list.
     if len(bits) >= 3 and bits[-2] in {"co", "com", "org", "net", "ac", "gov"} and len(bits[-1]) == 2:
         return bits[-3], ".".join(bits[-2:])

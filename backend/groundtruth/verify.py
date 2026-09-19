@@ -17,7 +17,9 @@ from typing import Any
 
 from .attest.resolver import KeyResolver, KeysUnavailable, default_resolver
 from .attest.token import TokenCheck, parse as parse_token, verify as verify_token
+from .corroborate.browser import Browser, default_browser
 from .corroborate.employer import EmployerEvidence, verify_employer
+from .corroborate.posting import PostingEvidence, check_posting
 from .corroborate.transport import Transport, default_transport
 from .integrity.findings import Finding, Severity
 from .integrity.scanner import IntegrityReport, scan_pdf
@@ -34,6 +36,7 @@ class Verification:
     practices: PracticeReport | None = None
     employer: EmployerEvidence | None = None
     document: IntegrityReport | None = None
+    posting: PostingEvidence | None = None
     attestation: TokenCheck | None = None
     attestation_findings: list[Finding] = field(default_factory=list)
     trace: Trace | None = None
@@ -43,7 +46,8 @@ class Verification:
     @property
     def findings(self) -> list[Finding]:
         out: list[Finding] = list(self.attestation_findings)
-        for part in (self.domain, self.practices, self.employer, self.document):
+        for part in (self.domain, self.practices, self.employer, self.document,
+                     self.posting):
             if part is not None:
                 out.extend(part.findings)
         return sorted(out, key=lambda f: -f.severity.rank)
@@ -64,6 +68,7 @@ class Verification:
             "practices": self.practices.to_dict() if self.practices else None,
             "employer": self.employer.to_dict() if self.employer else None,
             "document": self.document.to_dict() if self.document else None,
+            "posting": self.posting.to_dict() if self.posting else None,
             "attestation": self.attestation.to_dict() if self.attestation else None,
             # Exposed separately: attestation findings are not nested under any
             # of the four check objects, so a consumer iterating those alone
@@ -177,6 +182,16 @@ def _summarise(v: Verification) -> tuple[str, str]:
             "Slow down and confirm independently before sending anything. A "
             "legitimate employer will wait.",
         )
+    if (any(f.code == "POSTING_FOUND" for f in v.findings)
+            and not high and not critical):
+        signed = any(f.code == "ATTEST_VALID" for f in v.findings)
+        return (
+            "This role is listed on the company's own careers page"
+            + (" and the message is cryptographically signed." if signed else "."),
+            "That is the strongest check available here: nobody can publish a "
+            "job on a company's own site but the company. Apply through that "
+            "page directly rather than through a link you were sent.",
+        )
     if any(f.code == "ATTEST_VALID" for f in v.findings) and not high and not critical:
         return (
             f"This message is cryptographically signed by "
@@ -184,6 +199,15 @@ def _summarise(v: Verification) -> tuple[str, str]:
             "The signature confirms the message genuinely came from that "
             "domain. It does not confirm the role, the pay, or that the "
             "recruiter has the authority they claim — evaluate those normally.",
+        )
+    medium = [f for f in v.findings if f.severity is Severity.MEDIUM]
+    if medium:
+        return (
+            f"{len(medium)} thing(s) here are worth a second look before you "
+            "reply.",
+            "None of these is alarming on its own, and each has ordinary "
+            "explanations. Read them, then decide whether to confirm anything "
+            "independently before sending documents or money.",
         )
     if any(f.code == "EMPLOYER_NOT_CHECKED" for f in v.findings):
         return (
@@ -206,9 +230,12 @@ def verify(
     document_path: str | None = None,
     attestation: str | None = None,
     recipient_email: str | None = None,
+    role: str | None = None,
+    check_posting_page: bool = False,
     transport: Transport | None = None,
     recorder: PrismRecorder | None = None,
     resolver: KeyResolver | None = None,
+    browser: Browser | None = None,
 ) -> Verification:
     """Run every available check over one piece of outreach."""
     transport = transport or default_transport()
@@ -272,7 +299,21 @@ def verify(
                    inp=attestation[:40] + "…", out=out,
                    ms=int((time.perf_counter() - t0) * 1000), status=status)
 
-    # 5. If an offer letter was attached, check it for manipulation.
+    # 5. Is the role actually listed where this employer lists roles? Opt-in:
+    #    it drives a real browser and costs seconds, not milliseconds.
+    if role is None and v.attestation and v.attestation.valid and v.attestation.attestation:
+        role = v.attestation.attestation.role  # a valid attestation names it
+    if check_posting_page and known_domain and role:
+        t0 = time.perf_counter()
+        br = browser or default_browser()
+        v.posting = check_posting(known_domain, role, br)
+        trace.tool(f"browser.{v.posting.engine}", "Check careers page listing",
+                   inp=f"{known_domain} / {role!r}",
+                   out=f"found={v.posting.found} url={v.posting.careers_url}",
+                   ms=int((time.perf_counter() - t0) * 1000),
+                   status="success" if v.posting.checked else "error")
+
+    # 6. If an offer letter was attached, check it for manipulation.
     if document_path:
         t0 = time.perf_counter()
         v.document = scan_pdf(document_path)

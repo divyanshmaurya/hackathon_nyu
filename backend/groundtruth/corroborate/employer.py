@@ -71,8 +71,10 @@ def _candidate_domains(results: list[SearchResult], company: str) -> Counter:
         d = domain_of(r.url)
         if not d:
             continue
-        name, _ = registrable_parts(d)
-        base = f"{name}.{registrable_parts(d)[1]}"
+        name, tld = registrable_parts(d)
+        # A host with no public suffix (an IP literal, or a single label) has
+        # an empty tld; joining unconditionally yields "127.0.0.1." .
+        base = f"{name}.{tld}" if tld else name
         if base in AGGREGATORS or d in AGGREGATORS or base in FREE_MAIL:
             continue
         weight = r.score or 0.5

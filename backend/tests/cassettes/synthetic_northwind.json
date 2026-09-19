@@ -1,0 +1,28 @@
+{
+  "query": "Northwind Robotics official website careers",
+  "kw": {
+    "max_results": 6
+  },
+  "response": {
+    "results": [
+      {
+        "title": "Northwind Robotics",
+        "url": "http://127.0.0.1:8777/",
+        "content": "Autonomous warehouse systems.",
+        "score": 0.96
+      },
+      {
+        "title": "Careers \u2014 Northwind Robotics",
+        "url": "http://127.0.0.1:8777/careers.html",
+        "content": "Open roles.",
+        "score": 0.91
+      },
+      {
+        "title": "Northwind Robotics - LinkedIn",
+        "url": "https://www.linkedin.com/company/northwind",
+        "content": "Profile",
+        "score": 0.7
+      }
+    ]
+  }
+}

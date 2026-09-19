@@ -143,3 +143,23 @@ def test_trace_steps_match_prism_schema(tape):
         assert d["label"]
         if d["step_type"] == "tool_call":
             assert d["tool_name"], "PRISM requires tool_name on tool_call steps"
+
+
+def test_single_label_host_has_no_trailing_dot(tape):
+    """Regression: registrable_parts returns an empty suffix for IP literals and
+    single-label hosts, and the join produced '127.0.0.1.'."""
+    from groundtruth.corroborate.employer import _candidate_domains
+    from groundtruth.corroborate.transport import SearchResult
+    scores = _candidate_domains(
+        [SearchResult("Home", "http://127.0.0.1:8777/", "x", 0.9)], "Northwind")
+    assert all(not d.endswith(".") for d in scores)
+
+
+def test_medium_findings_are_not_reported_as_nothing_alarming(tape):
+    """Regression: MEDIUM matched no branch and fell through to the all-clear
+    headline, so a 'worth a second look' result read as 'nothing found'."""
+    v = verify("talent@apexrecruiting.com", "We have a role for you.", "Datadog",
+               transport=tape)
+    assert v.max_severity is Severity.MEDIUM
+    assert "Nothing alarming" not in v.headline
+    assert "second look" in v.headline

@@ -131,6 +131,21 @@ h3.group{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(
     </div>
   </div>
 
+  <div class="row">
+    <div>
+      <label for="role">Job title <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+      <input id="role" name="role" placeholder="Senior Software Engineer" autocomplete="off">
+    </div>
+    <div>
+      <label style="display:flex;gap:8px;align-items:center;margin-top:26px;font-weight:500">
+        <input type="checkbox" id="check_posting" name="check_posting" value="true"
+               style="width:auto;margin:0">
+        Check the company's careers page
+      </label>
+      <p class="hint">Opens the real careers site in a browser. Takes a few seconds.</p>
+    </div>
+  </div>
+
   <label for="document">Offer letter, if they sent one (PDF)</label>
   <input id="document" name="document" type="file" accept="application/pdf">
   <p class="hint">Files are processed in memory and deleted immediately. Nothing is stored.</p>
@@ -184,6 +199,8 @@ document.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{
   $("#company").value=e.company; $("#message").value=e.message;
   $("#document").value="";
   $("#attestation").value = e.signed ? DEMO_TOKEN : "";
+  $("#role").value = e.role || "";
+  $("#check_posting").checked = !!e.posting;
   $("#me").value = e.signed ? "alex@example.com" : "";
   $("#f").requestSubmit();
 });
@@ -203,7 +220,7 @@ function finding(f){
 
 function render(d){
   const all=[];
-  for(const part of ["practices","domain","employer","document"])
+  for(const part of ["practices","domain","employer","document","posting"])
     if(d[part]&&d[part].findings) all.push(...d[part].findings);
   if(d.attestation_findings) all.push(...d.attestation_findings);
   all.sort((a,b)=>({critical:4,high:3,medium:2,low:1,info:0})[b.severity]

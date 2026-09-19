@@ -32,6 +32,7 @@ a test-suite release gate.*
 - Thesis and architecture → [`docs/PRODUCT.md`](docs/PRODUCT.md)
 - Audience, distribution, sustainability → [`docs/MARKET.md`](docs/MARKET.md)
 - The employer trust signal → [`docs/ATTESTATION.md`](docs/ATTESTATION.md)
+- Careers-page verification → [`docs/SOLARI.md`](docs/SOLARI.md)
 
 ## Status
 
@@ -44,10 +45,10 @@ a test-suite release gate.*
 | **PRISM tracing** (trajectory per verification) | ✅ code complete, needs key |
 | **Offer-letter tampering** (font/overlay/provenance) | ✅ |
 | **Signed employer attestations** (Ed25519, domain-anchored) | ✅ |
-| Solari (live careers-page check) | ⬜ next |
+| **Careers-page verification** — Solari | ✅ logic tested, remote transport needs key |
 | **Candidate-facing web UI** (FastAPI + single page) | ✅ |
 
-**91 tests passing.**
+**109 tests passing.**
 
 ### Run the web app
 

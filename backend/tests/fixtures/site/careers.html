@@ -1,0 +1,19 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Careers — Northwind Robotics</title></head>
+<body>
+<h1>Open roles</h1>
+<div id="jobs">Loading positions…</div>
+<script>
+// Deliberately client-rendered: an HTTP fetch of this page sees only
+// "Loading positions…". This is how essentially every real careers page works,
+// and it is why the posting check needs a browser rather than requests.get.
+const roles = [
+  ["Senior Robotics Engineer","/jobs/robotics-eng"],
+  ["Staff Software Engineer, Perception","/jobs/perception"],
+  ["Technical Program Manager","/jobs/tpm"]
+];
+setTimeout(() => {
+  document.getElementById("jobs").innerHTML =
+    "<ul>" + roles.map(([t,h]) => `<li><a href="${h}">${t}</a></li>`).join("") + "</ul>";
+}, 300);
+</script>
+</body></html>

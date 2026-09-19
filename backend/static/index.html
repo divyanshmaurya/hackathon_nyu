@@ -28,6 +28,10 @@
 body{margin:0;background:var(--bg);color:var(--ink);
   font:15px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Inter,sans-serif;}
 .wrap{max-width:860px;margin:0 auto;padding:40px 16px 80px}
+.masthead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:34px;
+  text-align:left}
+.masthead .word{font-size:19px;font-weight:750;letter-spacing:-.01em;color:var(--ink)}
+.masthead .tag{font-size:13px;color:var(--muted);line-height:1.4}
 header{margin-bottom:28px}
 h1{font-size:26px;margin:0 0 6px;letter-spacing:-.02em}
 .tag{color:var(--muted);font-size:14px;margin:0}
@@ -147,6 +151,10 @@ h3.group{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(
 </head>
 <body>
 <div class="wrap">
+<div class="masthead">
+  <span class="word">Groundtruth</span>
+  <span class="tag">We never ask if it was written by AI. We ask if any of it is real.</span>
+</div>
 <header class="hero">
   <h1>Verify who is recruiting you,<br>before you hand over anything.</h1>
   <p class="lede">

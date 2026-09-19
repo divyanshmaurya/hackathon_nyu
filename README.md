@@ -1,40 +1,47 @@
 # Groundtruth
 
-**The verification layer for staffing agencies.** — NYU Hiring Trust Hackathon
+**Verify who is recruiting you, before you hand over anything.**
+— NYU Hiring Trust Hackathon
 
 > **Verification, not detection.**
 > We never ask "was this written by AI?" — unanswerable, and it punishes honest
-> candidates. We ask "is any of this real?", which gets *easier* as models
-> improve. Fabrication is cheap; corroboration is expensive.
+> people. We ask "is any of this real?", which gets *easier* as models improve.
+> Fabrication is cheap; corroboration is expensive.
 
-**Who it's for:** small and mid-sized IT and contract staffing agencies — the
-highest-risk node in the hiring funnel and the least-tooled participant in it.
-They carry an enterprise's liability on a small business's budget: one
-fraudulent submission doesn't cost a placement fee, it can cost the whole
-client account. Meanwhile their clients have started writing verification
-requirements into MSAs and auditing them on it, and the industry's worst-case
-exposure — North Korean IT worker placement — is an OFAC problem, not an
-embarrassment.
+**Who it's for:** job seekers facing recruiter outreach they have no way to
+check — sharpest for international students on F-1/OPT, where the consequence of
+a bad intermediary isn't a wasted week, it's their immigration status. Students
+are charged [up to $2,000 for fabricated work
+experience](https://www.m9.news/usa-news/f1-student-scam-fake-job-companies/) by
+firms that then vanish; one operator alone [faked employment verification for
+2,500+ F-1
+students](https://www.boundless.com/blog/identify-h-1b-fraud-fake-opt-candidates).
+The consultancy keeps the money. The student [can be detained or removed years
+later](https://www.greatandhra.com/articles/special-articles/opt-under-fire-again-as-us-claims-major-student-visa-fraud/)
+— sometimes without ever knowing the record was false.
 
-They are also the most *impersonated* party in hiring, because unsolicited
-outreach from an unknown recruiter is their legitimate business motion. So the
-same engine runs both ways for the same customer.
+Every part of that harm is deferred and invisible at the moment of decision.
+Our job is to move the information to that moment.
+
+**What we refuse to do:** label anyone "a scam." We report what is *verifiable*
+about a sender, and what the message is *asking you to do* — sorted into
+illegal, harmful, and context. Many intermediaries are legitimate; a tool that
+flags all of them protects nobody. *Ordinary agency outreach returning clean is
+a test-suite release gate.*
 
 - Thesis and architecture → [`docs/PRODUCT.md`](docs/PRODUCT.md)
-- Market, ICP, pricing, competition → [`docs/MARKET.md`](docs/MARKET.md)
-
----
+- Audience, distribution, sustainability → [`docs/MARKET.md`](docs/MARKET.md)
 
 ## Status
 
 | Component | State |
 |---|---|
-| **Integrity axis** (document forensics) | ✅ working, 21 tests passing |
-| Claim extraction | ⬜ next |
-| Corroboration (Tavily · Solari · GitHub) | ⬜ next |
-| Distinctiveness (pool-level clustering) | ⬜ next |
+| **Document integrity** (offer letters, resumes) | ✅ 21 tests |
+| **Sender impersonation** (look-alike domains) | ✅ 16 tests |
+| **Predatory practice detection** (3 tiers) | ✅ 9 tests |
+| Employer corroboration (Tavily · Solari) | ⬜ next |
 | PRISM tracing / guardrails / evals | ⬜ next |
-| Recruiter dossier UI | ⬜ next |
+| Candidate-facing UI | ⬜ next |
 
 ## What works today
 

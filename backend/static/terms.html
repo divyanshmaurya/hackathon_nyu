@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Terms — Groundtruth</title>
+<style>
+:root{
+  --bg:#fbfbfa; --panel:#fff; --ink:#1a1a18; --muted:#6b6b66; --line:#e4e4e0;
+  --accent:#2f5d50; --accent-soft:#eaf1ee; --radius:10px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#141413; --panel:#1c1c1a; --ink:#eeeeec; --muted:#9a9a94; --line:#2e2e2b;
+  --accent:#7fb8a4; --accent-soft:#1e2b27;
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:15px/1.65 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Inter,sans-serif;}
+.wrap{max-width:720px;margin:0 auto;padding:40px 16px 80px}
+a{color:var(--accent)}
+h1{font-size:26px;margin:0 0 6px;letter-spacing:-.02em}
+h2{font-size:17px;margin:32px 0 8px}
+p,li{color:var(--ink)}
+.tag{color:var(--muted);font-size:14px;margin:0 0 30px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:20px 24px;margin-top:20px}
+.back{display:inline-block;margin-bottom:24px;font-size:13.5px;color:var(--muted);
+  text-decoration:none}
+.back:hover{color:var(--accent)}
+.updated{color:var(--muted);font-size:12.5px;margin-top:40px}
+ul{padding-left:20px}
+li{margin-bottom:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="/">← Groundtruth</a>
+  <h1>Terms of use</h1>
+  <p class="tag">Short, because the product should be too.</p>
+
+  <div class="panel">
+    <h2>What this tool is</h2>
+    <p>Groundtruth checks recruiter outreach against verifiable, independent
+    facts: whether the sender's domain matches the company it claims, whether
+    the company has a public footprint, what the message asks you to do, and
+    whether an attached document shows signs of manipulation. It reports
+    evidence. It does not, and cannot, prove that a job or a person is real.</p>
+
+    <h2>This is not legal, immigration, or financial advice</h2>
+    <p>Nothing on this page is a substitute for advice from a licensed
+    attorney, your school's international student office, or a financial
+    professional. Where a finding recommends speaking to one of these before
+    acting, that is not a formality — do it. Decisions about signing, paying,
+    or sending documents are yours, made with information this tool
+    contributes to, not information it substitutes for.</p>
+
+    <h2>No guarantee of completeness</h2>
+    <p>Every check here distinguishes three outcomes: it passed, it failed, or
+    it did not run — and the tool says which, rather than treating a check
+    that never ran as a clean result. Still, a "nothing alarming found"
+    verdict reflects what was checkable at the time, not a certification that
+    an opportunity is legitimate. Absence of a red flag is not proof of
+    safety.</p>
+
+    <h2>Acceptable use</h2>
+    <ul>
+      <li>Use this tool to evaluate outreach addressed to you or someone you
+      are directly helping (a student, a family member).</li>
+      <li>Do not use automated tools to send high-volume traffic to this
+      service. Requests are rate-limited per client; deliberately working
+      around that limit is a violation of these terms.</li>
+      <li>Do not upload documents you do not have the right to submit for
+      analysis, or that contain another person's sensitive information
+      without their knowledge.</li>
+      <li>Do not use this service to test, probe, or build a competing
+      evasion technique against its detectors. Its false-positive controls
+      exist to protect honest people, not to be reverse-engineered.</li>
+    </ul>
+
+    <h2>Availability</h2>
+    <p>Some checks depend on third-party services (employer search, careers-
+    page rendering) and are unavailable when those services are unreachable
+    or unconfigured. The tool reports this honestly rather than silently
+    returning a clean result — see <code>/api/health</code>. Availability is
+    provided as-is, without an uptime guarantee, for the free public
+    deployment.</p>
+
+    <h2>Institutional use</h2>
+    <p>A university, career center, or immigration-services office deploying
+    this for its students operates under a separate written agreement that
+    may set usage volume, support terms, and branding — contact the project
+    directly. These general terms still govern the underlying tool absent
+    something more specific in that agreement.</p>
+
+    <h2>Changes</h2>
+    <p>These terms may be updated as the product changes. Continued use after
+    an update means you accept the current version.</p>
+  </div>
+  <p class="updated">Last updated alongside this deployment's current version.</p>
+</div>
+</body>
+</html>

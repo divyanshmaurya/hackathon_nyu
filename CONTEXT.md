@@ -6,7 +6,7 @@ reasoning behind them — what was decided, what was tried and rejected, what is
 half-built, and which mistakes are already paid for.
 
 Branch: `claude/tender-lovelace-4vgxta` (the repository's default).
-State when written: 139 tests passing, all six checks built, all three sponsor
+State when written: 153 tests passing, all six checks built, all three sponsor
 integrations live-verified. Run `git log --oneline` for what has landed since —
 commit messages here are written to explain *why*, not just what.
 
@@ -121,9 +121,11 @@ for their module — read `backend/tests/test_<area>.py` before changing one.
 | `attest/resolver.py` | Fetches an issuer's keys from **its own domain**: `HttpsResolver`, `LocalRegistry` (tests/demo), `OfflineResolver` (raises) |
 | `observability/prism.py` | Trajectory + per-step traces sharing the run id as `session_id`. Shrinks its budgets on serverless |
 | `observability/check.py` | `prism-check`: handshake → a real traced verification → doctor. Distinguishes **unreachable** from **rejected** |
-| `config.py` | `.env` loading. Rejects RTF (TextEdit's default) rather than parsing it into plausible garbage, normalises typographic quotes, and never overrides an already-set variable |
+| `config.py` | `.env` loading, plus public-deployment settings (`max_upload_bytes`, `rate_limit_per_minute`, `allowed_origins`). Rejects RTF (TextEdit's default) rather than parsing it into plausible garbage, normalises typographic quotes, and never overrides an already-set variable |
+| `ratelimit.py` | `FixedWindowLimiter` — dependency-free, per-process, keyed by client identity. Swap the backing dict for Redis to go multi-instance; the interface does not need to change |
 | `verify.py` | Orchestration. `verify_iter()` is the generator; `verify()` drains it |
 | `cli.py` | `verify` · `demo` · `keys` · `keygen` · `issue` · `prism-check` |
+| `app.py` | FastAPI service. Also where the public-surface hardening lives: rate-limit enforcement, capped upload reads, security-header + logging middleware, the sanitized 500 handler |
 
 ### Sponsor integrations — all three live-verified
 
@@ -234,10 +236,96 @@ Do not reintroduce these. Each has a regression test.
   `/api/health` → `can_browse: false`. See `docs/DEPLOY.md`.
 - **No persistence.** Every verification is stateless. Uploaded documents are
   processed in a temp file and unlinked in a `finally` block.
-- **No rate limiting or auth** on the API. Fine for a demo, not for public
-  deployment.
+- **No auth, no multi-tenancy, no billing.** Rate limiting exists now (see
+  below) but there is still no concept of an account, an institution, or a
+  paying customer. Everything runs as one anonymous, free, public surface.
 - **The demo attestation** is for a fictional `datadoghq.com`. Regenerate with
   `backend/tests/registry/make_registry.py`.
+
+### Public-surface hardening (this pass)
+
+The engine and checks were solid before this; the *edges* of the public API
+were not — an unauthenticated endpoint that buffers unlimited uploads into
+memory and runs unlimited real third-party calls is a cost and availability
+risk independent of anything the detectors do. Added:
+
+- **Rate limiting** — `groundtruth/ratelimit.py`, a dependency-free fixed-
+  window counter keyed by client IP (`X-Forwarded-For` first, falling back to
+  the socket peer). Applied to both `/api/verify` and `/api/verify/stream` via
+  `_enforce_rate_limit()` in `app.py`. **Known limitation, stated up front
+  rather than discovered later:** it is per-process. Multiple uvicorn workers
+  or multiple instances each hold their own counters, so the effective limit
+  multiplies by process count. Scaling past one process means putting a
+  shared store (Redis is the obvious choice) behind the same `check()`
+  interface — nothing that calls it needs to change.
+- **Upload caps** — `_save_upload_capped()` in `app.py` streams an upload in
+  256KB chunks and aborts with `413` past `MAX_UPLOAD_MB` (default 15MB),
+  instead of the previous `await document.read()`, which buffered a file of
+  any size into memory with no authentication required to trigger it.
+- **Form-field bounds** — `sender`/`company`/`message`/`role`/`attestation`/
+  `me` all carry `max_length` now. Not about validity; about keeping a single
+  request's cost fixed regardless of what an anonymous caller sends, since
+  every one of those fields feeds a regex scan, a search query, or a browser
+  render.
+- **Security headers + sanitized errors** — the `_observability` middleware
+  in `app.py` sets `X-Content-Type-Options`, `X-Frame-Options`,
+  `Referrer-Policy`, `Permissions-Policy`, and a CSP scoped to the page's
+  actual needs (it still needs `'unsafe-inline'` for script/style because
+  `index.html`'s JS and CSS are inline — moving them to external files with a
+  nonce is the natural next step, not done here). An uncaught exception
+  returns a generic 500 body; the real exception is logged server-side via
+  `logging`, never returned to the caller. Request logs carry method / path /
+  status / timing / client IP — **never** message, company, document, or
+  attestation content, for the same reason the product itself never stores
+  those.
+- **Privacy and Terms pages** — `backend/static/privacy.html` and
+  `terms.html`, linked from the landing page footer. Written to describe
+  actual behaviour (temp-file deletion, what each sponsor API receives, that
+  PRISM gets summaries/char-counts not raw message text) rather than
+  boilerplate that a real audit would contradict.
+- Config for all of this lives in `groundtruth/config.py`:
+  `RATE_LIMIT_PER_MINUTE`, `MAX_UPLOAD_MB`, `ALLOWED_ORIGINS` — same pattern
+  as credentials, env-first with a logged default. `ALLOWED_ORIGINS` unset
+  still means wide-open CORS (`*`), which is correct for the free public demo
+  and wrong the moment an institutional customer embeds this against their
+  own domain — the startup log says so.
+- Tests: `backend/tests/test_app.py`, using FastAPI's `TestClient` against
+  the real ASGI app (a first for this codebase — everything before this
+  tested the engine directly, never the HTTP surface).
+
+None of this is multi-tenant. A university buying this is still hitting the
+same anonymous rate limiter as everyone else; there is no way to give one
+institution a higher quota, brand the page, or know which verifications came
+from their students. That is deliberately out of scope for this pass — see
+below.
+
+### The chosen path to a paying customer
+
+The framing in §2 is unchanged and still governs: candidates stay free, full
+stop. The business model layered on top of that, decided explicitly rather
+than left implicit: **sell to universities, international-student offices,
+and immigration law firms as compliance/duty-of-care tooling.** They already
+budget for OPT/CPT compliance and already have a legal interest in their
+students not being defrauded; students keep using the tool at no cost. This
+is not a reopening of the "sell to staffing agencies" framing rejected in
+§2 — the buyer here is protecting *its own* population, not intermediating
+between candidates and employers.
+
+Nothing institutional is built yet. What that would need, roughly in
+dependency order, is the next work after this hardening pass:
+
+1. **Accounts and API keys**, scoped to an institution, so a rate limit,
+   usage report, or branding decision can attach to something.
+2. **Per-institution rate limits and quotas** replacing the single global
+   limiter — the interface in `ratelimit.py` is already shaped for this
+   (swap the key from IP to institution ID), the policy on top is not built.
+3. **A minimal admin/usage view** an ISSS office can look at — even a simple
+   "N verifications this month, M flagged critical" — before anything as
+   heavy as a full dashboard.
+4. **Billing** (Stripe, likely a per-seat or per-verification-volume model
+   for the institution — never a per-verification charge to the student).
+5. **A pitch-ready one-pager**: the FTC/BBB stats already in the landing
+   page hero are the start of this, not the whole thing.
 
 ### Sensible next steps
 
@@ -245,7 +333,9 @@ Do not reintroduce these. Each has a regression test.
 2. Serve `/.well-known/groundtruth.json` from the app so the deployment
    dogfoods its own trust signal on whatever domain it runs on.
 3. Claim extraction (the first legitimate LLM) → resume-side corroboration.
-4. Rate limiting before any public deployment.
+4. The institutional-accounts work above, once there is a real university
+   conversation to build it for — building it speculatively first risks
+   guessing the wrong shape.
 
 ---
 
@@ -258,7 +348,7 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -r backend/requirements.txt
 python3 -m playwright install chromium     # only if not using Solari
 
-cd backend && python3 -m pytest tests -q   # 139 passing
+cd backend && python3 -m pytest tests -q   # 153 passing
 python3 -m uvicorn app:app --port 8000     # http://127.0.0.1:8000
 ```
 
@@ -312,6 +402,7 @@ detector.
 | `test_posting.py` | Careers pages, browser backends, the JS-rendering premise |
 | `test_prism_check.py` | Setup verification, unreachable vs rejected |
 | `test_config.py` | `.env` parsing, RTF rejection, tracked-secret release gate |
+| `test_app.py` | HTTP surface hardening — rate limiting, upload caps, form-field bounds, security headers, sanitized 500s, legal pages. Uses FastAPI's `TestClient` against the real app, unlike every other test file here |
 
 ---
 

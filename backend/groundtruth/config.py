@@ -113,3 +113,53 @@ def load_env(start: str | pathlib.Path | None = None, override: bool = False) ->
 def status() -> dict[str, bool]:
     """Which credentials are present. Never returns the values themselves."""
     return {k: bool(os.environ.get(k)) for k in TRACKED}
+
+
+# ---------------------------------------------------------------------------
+# Public-deployment settings. Same rule as credentials: read from the
+# environment, sane default when absent, never silently misbehave.
+# ---------------------------------------------------------------------------
+
+def _int_env(name: str, default: int) -> int:
+    raw = os.environ.get(name, "").strip()
+    if not raw:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        return default
+
+
+def max_upload_bytes() -> int:
+    """Hard cap on an uploaded document. MAX_UPLOAD_MB, default 15MB.
+
+    Without a cap, `UploadFile.read()` happily buffers an attacker-supplied
+    file of any size into memory on an endpoint that requires no
+    authentication -- a cheap way to exhaust a small server's RAM with a
+    handful of concurrent requests.
+    """
+    return _int_env("MAX_UPLOAD_MB", 15) * 1024 * 1024
+
+
+def rate_limit_per_minute() -> int:
+    """Requests per client per minute allowed at /api/verify(/stream).
+
+    RATE_LIMIT_PER_MINUTE, default 20. Each verification can trigger a real
+    Tavily search and a real headless-browser render once keys are live, so
+    an unthrottled endpoint is a way to burn through both quotas for free.
+    """
+    return _int_env("RATE_LIMIT_PER_MINUTE", 20)
+
+
+def allowed_origins() -> list[str]:
+    """CORS origins allowed to call the API. ALLOWED_ORIGINS, comma-separated.
+
+    Defaults to '*' so the demo keeps working unconfigured -- appropriate for
+    a public read-only tool, not for a deployment fronting anything sensitive.
+    Set this explicitly once real institutional customers embed the widget on
+    their own domain.
+    """
+    raw = os.environ.get("ALLOWED_ORIGINS", "").strip()
+    if not raw:
+        return ["*"]
+    return [o.strip() for o in raw.split(",") if o.strip()]

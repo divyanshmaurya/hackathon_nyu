@@ -187,9 +187,30 @@ something unlawful was asked for, the visa advice comes second and says why:
 the consequences of a fabricated employment record fall on the student, not on
 the consultancy.
 
+### Public-surface hardening
+
+The checks were always deterministic and honest about what they didn't check.
+The *API in front of them* now carries the same discipline:
+
+- **Rate limited** — 20 requests/minute per client by default
+  (`RATE_LIMIT_PER_MINUTE`), so one caller can't burn through a shared Tavily
+  or Solari quota alone.
+- **Upload-capped** — documents are streamed and rejected past 15MB
+  (`MAX_UPLOAD_MB`) instead of buffered into memory without limit.
+- **No content in logs** — request logs carry method, path, status, timing and
+  client IP; never the message, company, document, or attestation you sent.
+- **Sanitized errors** — an unhandled failure returns a generic message, not a
+  stack trace; the real error is logged server-side.
+- **Security headers** on every response, and `/privacy` / `/terms` pages
+  that describe actual behaviour rather than boilerplate.
+
+None of this is multi-tenant yet — see `CONTEXT.md` §"The chosen path to a
+paying customer" for what an institutional deployment (the intended buyer:
+universities, ISSS offices, immigration law firms) still needs on top of this.
+
 ## Status
 
-**139 tests passing.** All three sponsor integrations live-verified.
+**153 tests passing.** All three sponsor integrations live-verified.
 
 | Component | State |
 |---|---|
@@ -204,6 +225,8 @@ the consultancy.
 | Web UI (live progress, actions, reporting links) | ✅ |
 | CLI (`verify` · `demo` · `keys` · `keygen` · `issue` · `prism-check`) | ✅ |
 | Vercel deployment | ✅ (careers check excluded — see below) |
+| Public-surface hardening (rate limits, upload caps, sanitized errors, security headers, legal pages) | ✅ |
+| Multi-tenancy, accounts, billing (needed to actually sell this) | ⬜ not built |
 
 ```
 $ python3 -m groundtruth.cli prism-check
@@ -229,7 +252,7 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -r backend/requirements.txt
 python3 -m playwright install chromium     # only if not using Solari
 
-cd backend && python3 -m pytest tests -q   # 139 passing
+cd backend && python3 -m pytest tests -q   # 153 passing
 python3 -m uvicorn app:app --port 8000
 ```
 
@@ -256,7 +279,8 @@ locally, the browser falls back to local Chromium. The loader refuses RTF files
 |---|---|
 | `POST /api/verify` | the complete result as JSON |
 | `POST /api/verify/stream` | newline-delimited JSON, one event per check as it finishes |
-| `GET /api/health` | which integrations are live, and `can_browse` |
+| `GET /api/health` | which integrations are live, `can_browse`, and the active `rate_limit_per_minute` / `max_upload_mb` |
+| `GET /privacy`, `GET /terms` | the legal pages, linked from the landing page footer |
 
 ### CLI
 
@@ -283,7 +307,7 @@ backend/groundtruth/
   verify.py       orchestration
   cli.py          command line
 backend/app.py    FastAPI service      backend/static/  candidate-facing UI
-backend/tests/    139 tests + cassettes, fixtures, demo registry
+backend/tests/    153 tests + cassettes, fixtures, demo registry
 samples/          adversarial + control corpora (resumes, offer letters)
 api/ vercel.json  serverless deployment
 ```

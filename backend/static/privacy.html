@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy — Groundtruth</title>
+<style>
+:root{
+  --bg:#fbfbfa; --panel:#fff; --ink:#1a1a18; --muted:#6b6b66; --line:#e4e4e0;
+  --accent:#2f5d50; --accent-soft:#eaf1ee; --radius:10px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#141413; --panel:#1c1c1a; --ink:#eeeeec; --muted:#9a9a94; --line:#2e2e2b;
+  --accent:#7fb8a4; --accent-soft:#1e2b27;
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:15px/1.65 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Inter,sans-serif;}
+.wrap{max-width:720px;margin:0 auto;padding:40px 16px 80px}
+a{color:var(--accent)}
+h1{font-size:26px;margin:0 0 6px;letter-spacing:-.02em}
+h2{font-size:17px;margin:32px 0 8px}
+p,li{color:var(--ink)}
+.tag{color:var(--muted);font-size:14px;margin:0 0 30px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:20px 24px;margin-top:20px}
+.back{display:inline-block;margin-bottom:24px;font-size:13.5px;color:var(--muted);
+  text-decoration:none}
+.back:hover{color:var(--accent)}
+.updated{color:var(--muted);font-size:12.5px;margin-top:40px}
+ul{padding-left:20px}
+li{margin-bottom:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="/">← Groundtruth</a>
+  <h1>Privacy</h1>
+  <p class="tag">What happens to what you paste or attach here — in plain language.</p>
+
+  <div class="panel">
+    <h2>Nothing you submit is stored</h2>
+    <p>A verification request is processed in memory for the duration of that
+    request only. There is no database and no account system. When you attach
+    a document, it is written to a temporary file so it can be scanned, and
+    that file is deleted immediately after the check completes — in a
+    <code>finally</code> block, so it is removed even if the check fails
+    partway through.</p>
+
+    <h2>What we send to a third party, and why</h2>
+    <ul>
+      <li><b>Tavily</b> (employer corroboration) receives the company name you
+      typed, as a search query, so we can find the company's real domain.</li>
+      <li><b>Solari</b>, when the careers-page check is on, renders the
+      company's own public careers page — not anything private of yours.</li>
+      <li><b>PRISM</b> (audit tracing) receives a record of which checks ran,
+      their timing, and short summaries — for example <code>"312 chars of
+      message text"</code>, not the message itself. The full text of what you
+      paste is never sent to PRISM.</li>
+    </ul>
+    <p>None of these receive your name unless it appears in the company name
+    or sender address you typed, which are necessary inputs to the checks
+    themselves.</p>
+
+    <h2>Your own email address</h2>
+    <p>The optional "your email" field is used once, locally, to confirm a
+    signed attestation was issued for you — by comparing a one-way hash, never
+    the address itself. It is combined with the issuing domain before hashing,
+    so the same address hashed for two different employers does not produce a
+    matching value either. Leave it blank and that one check is simply
+    skipped; nothing else on the page requires it.</p>
+
+    <h2>Server logs</h2>
+    <p>Like any web service, requests are logged with a timestamp, path,
+    status code, timing, and the calling IP address — for reliability and
+    abuse prevention (see <a href="/terms">Terms</a>). Logs never include the
+    content of your message, company name, attached document, or attestation
+    token.</p>
+
+    <h2>If you represent a university or employer</h2>
+    <p>An institutional deployment (for example, an international student
+    office embedding this tool for its own students) may agree to additional
+    terms covering usage volume and support — those are handled directly, not
+    through this page, and do not change the handling described above unless
+    stated in writing.</p>
+
+    <h2>Questions</h2>
+    <p>This is verification tooling built for job seekers, offered free. If
+    you have a question about this policy, raise it through the project's
+    repository.</p>
+  </div>
+  <p class="updated">Last updated alongside this deployment's current version.</p>
+</div>
+</body>
+</html>

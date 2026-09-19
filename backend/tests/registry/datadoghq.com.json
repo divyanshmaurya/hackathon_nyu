@@ -3,9 +3,9 @@
   "domain": "datadoghq.com",
   "keys": [
     {
-      "kid": "7e795a3a0988056f",
+      "kid": "56db0d46cbbcd09a",
       "alg": "ed25519",
-      "public_key": "lAM68MllzxBNOesuVJFn3Tkg3MFYNiudZCfMJqNcF4E",
+      "public_key": "XpTN1p2bXV1Rpx_rVSYm2Y9K0LeKCbznoimfMkg46Ko",
       "created": "2026-09-19"
     }
   ],

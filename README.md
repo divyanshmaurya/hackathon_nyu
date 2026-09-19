@@ -48,7 +48,7 @@ a test-suite release gate.*
 | **Careers-page verification** — Solari | ✅ logic tested, remote transport needs key |
 | **Candidate-facing web UI** (FastAPI + single page) | ✅ |
 
-**109 tests passing.**
+**116 tests passing.**
 
 ### Run the web app
 
@@ -83,8 +83,23 @@ the moment they execute somewhere with network access.
 
 To go live, on a machine with internet:
 
-Paste these one at a time. **Do not include trailing `#` comments** — zsh does
-not treat `#` as a comment in an interactive shell and will error.
+**Put your keys in a `.env` file — never in the repository.** Committed keys
+get scraped within minutes and survive in git history after you delete them.
+
+```bash
+cp .env.example .env
+```
+
+Open `.env`, paste the values after each `=`, save. `.env` is gitignored.
+Verify with:
+
+```bash
+cd backend && python3 -m groundtruth.cli keys
+```
+
+Or, if you prefer shell exports, paste one line at a time — **no trailing `#`
+comments**, since zsh does not treat `#` as a comment interactively and will
+error.
 
 ```bash
 export TAVILY_API_KEY=tvly-YOUR-REAL-KEY

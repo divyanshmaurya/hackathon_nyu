@@ -12,6 +12,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from groundtruth.config import load_env
+load_env()
+
 from groundtruth.attest.resolver import LocalRegistry, default_resolver
 from groundtruth.corroborate.transport import CassetteTransport, default_transport
 from groundtruth.observability.prism import PrismRecorder

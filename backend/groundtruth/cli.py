@@ -14,6 +14,7 @@ import sys
 from .attest.keys import EmployerKey, WELL_KNOWN_PATH
 from .attest.resolver import LocalRegistry, default_resolver
 from .attest.token import issue as issue_token
+from .config import load_env, status as key_status
 from .corroborate.transport import CassetteTransport, default_transport
 from .integrity.findings import Severity
 from .verify import verify
@@ -119,6 +120,7 @@ you'd be open to chatting about our Platform Engineering team. Happy to set up a
 
 
 def main(argv: list[str] | None = None) -> int:
+    load_env()
     ap = argparse.ArgumentParser(prog="groundtruth", description=__doc__)
     sub = ap.add_subparsers(dest="cmd", required=True)
 
@@ -156,10 +158,21 @@ def main(argv: list[str] | None = None) -> int:
     ip.add_argument("--to", default=None, help="candidate email (hashed, never stored)")
     ip.add_argument("--days", type=int, default=30)
 
+    sub.add_parser("keys", help="show which credentials are configured")
+
     dp = sub.add_parser("demo", help="run the built-in demo cases")
     dp.add_argument("--cassettes", default=None)
 
     a = ap.parse_args(argv)
+
+    if a.cmd == "keys":
+        from .corroborate.browser import default_browser
+        print()
+        for name, present in key_status().items():
+            print(f"  {'set   ' if present else 'MISSING'}  {name}")
+        print(f"\n  browser backend: {default_browser().engine}")
+        print("  Put keys in .env (gitignored). See .env.example.\n")
+        return 0
 
     if a.cmd == "keygen":
         key = EmployerKey.generate(a.domain)

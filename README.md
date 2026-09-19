@@ -1,13 +1,27 @@
 # Groundtruth
 
-**The verification layer for the hiring funnel.** — NYU Hiring Trust Hackathon
+**The verification layer for staffing agencies.** — NYU Hiring Trust Hackathon
 
 > **Verification, not detection.**
-> We never ask "was this written by AI?" — that question is unanswerable and
-> punishes honest candidates. We ask "is any of this real?", which gets *easier*
-> as models get better. Fabrication is cheap; corroboration is expensive.
+> We never ask "was this written by AI?" — unanswerable, and it punishes honest
+> candidates. We ask "is any of this real?", which gets *easier* as models
+> improve. Fabrication is cheap; corroboration is expensive.
 
-Full thesis: [`docs/PRODUCT.md`](docs/PRODUCT.md)
+**Who it's for:** small and mid-sized IT and contract staffing agencies — the
+highest-risk node in the hiring funnel and the least-tooled participant in it.
+They carry an enterprise's liability on a small business's budget: one
+fraudulent submission doesn't cost a placement fee, it can cost the whole
+client account. Meanwhile their clients have started writing verification
+requirements into MSAs and auditing them on it, and the industry's worst-case
+exposure — North Korean IT worker placement — is an OFAC problem, not an
+embarrassment.
+
+They are also the most *impersonated* party in hiring, because unsolicited
+outreach from an unknown recruiter is their legitimate business motion. So the
+same engine runs both ways for the same customer.
+
+- Thesis and architecture → [`docs/PRODUCT.md`](docs/PRODUCT.md)
+- Market, ICP, pricing, competition → [`docs/MARKET.md`](docs/MARKET.md)
 
 ---
 
@@ -43,7 +57,7 @@ $ python3 -m pytest backend/tests -q
 | `07_control_security_engineer.pdf` | clean ← *discusses prompt injection openly* |
 | `08_keyword_stuffing.pdf` | **manipulated** — hidden ATS keyword block |
 
-Row 7 is the one that matters. That resume contains the string
+Row 7 is the one that matters commercially. That resume contains the string
 *"ignore all previous instructions"* in plain sight, because the candidate
 builds defences against it for a living. Every naive keyword detector flags
 them. We return **clean**, because severity is a function of *which layer of
@@ -95,6 +109,18 @@ backend/groundtruth/
   observability/  # PRISM tracing, guardrails, evaluators
 samples/          # adversarial + control corpus
 ```
+
+## Why this beats AI-detection where it counts
+
+The clearest case is the one our customers are most afraid of. A North Korean
+IT operative's resume is *excellent* — well written, plausible, correctly
+targeted, often better than a real candidate's. Every AI-writing detector on
+the market returns "human."
+
+What breaks the cover is never the prose. It's corroboration: a GitHub account
+with four months of history, an employer that resolves to no real domain, no
+public footprint before 2024. Detection loses; verification wins. That is the
+entire company.
 
 ## Design constraints
 

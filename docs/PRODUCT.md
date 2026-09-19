@@ -1,8 +1,12 @@
 # Groundtruth
 
-**The verification layer for the hiring funnel.**
+**The verification layer for staffing agencies.**
 
 > Verification, not detection.
+
+Built for small and mid-sized IT and contract staffing firms. See
+[`MARKET.md`](MARKET.md) for why that sector, who buys, and how it's priced —
+this document covers what the product does and how it works.
 
 ---
 

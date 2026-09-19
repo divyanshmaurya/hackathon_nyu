@@ -67,6 +67,21 @@ def test_no_secrets_are_tracked_in_git():
     root = pathlib.Path(__file__).resolve().parents[2]
     out = subprocess.run(["git", "ls-files"], cwd=root, capture_output=True,
                          text=True).stdout
-    tracked = [f for f in out.splitlines()
-               if f.endswith(".pem") or pathlib.Path(f).name in (".env", ".env.local")]
+    SECRET_NAMES = {".env", ".env.local", "keys", "secrets", "credentials",
+                    "api_keys", "api-keys"}
+    tracked = []
+    for f in out.splitlines():
+        name = pathlib.Path(f).name
+        stem = name.split(".")[0].lower()
+        if f.endswith(".pem") or name in SECRET_NAMES or stem in SECRET_NAMES:
+            tracked.append(f)
     assert tracked == [], f"secret-shaped files are tracked: {tracked}"
+
+
+def test_gitignore_covers_hand_made_credential_files():
+    """The loader reads .env, but people create files called 'keys' while
+    setting up, and nothing else would stop those being committed."""
+    root = pathlib.Path(__file__).resolve().parents[2]
+    ignored = (root / ".gitignore").read_text()
+    for pattern in ("keys", "secrets", "credentials", "*.pem", ".env"):
+        assert pattern in ignored, f"{pattern} is not gitignored"

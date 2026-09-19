@@ -13,3 +13,19 @@ dist/
 # Regenerate fixtures with backend/tests/registry/make_registry.py
 *.pem
 !*.pub.pem
+
+# Credential files people actually create by hand. The loader only reads
+# .env/.env.local, but a file named "keys" or "secrets.txt" is exactly what
+# someone makes while setting up, and nothing else here would stop it being
+# committed.
+keys
+keys.*
+secrets
+secrets.*
+credentials
+credentials.*
+*.env
+*_key
+*_keys
+api_key*
+api-keys*

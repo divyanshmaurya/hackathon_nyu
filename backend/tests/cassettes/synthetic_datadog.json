@@ -1,0 +1,35 @@
+{
+  "query": "Datadog official website careers",
+  "kw": {
+    "max_results": 6
+  },
+  "response": {
+    "query": "Datadog official website careers",
+    "results": [
+      {
+        "title": "Datadog: Cloud Monitoring as a Service",
+        "url": "https://www.datadoghq.com/",
+        "content": "Datadog is the monitoring and security platform for cloud applications.",
+        "score": 0.97
+      },
+      {
+        "title": "Careers at Datadog",
+        "url": "https://careers.datadoghq.com/",
+        "content": "Open roles across engineering, sales and product.",
+        "score": 0.94
+      },
+      {
+        "title": "Datadog, Inc. - LinkedIn",
+        "url": "https://www.linkedin.com/company/datadog",
+        "content": "Datadog | 5,000 employees | New York, NY",
+        "score": 0.88
+      },
+      {
+        "title": "Datadog (DDOG) Stock Price",
+        "url": "https://www.bloomberg.com/quote/DDOG:US",
+        "content": "Datadog Inc Class A shares.",
+        "score": 0.71
+      }
+    ]
+  }
+}

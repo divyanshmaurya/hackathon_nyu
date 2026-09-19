@@ -1,0 +1,29 @@
+{
+  "query": "Apex Global Consultancy Inc official website careers",
+  "kw": {
+    "max_results": 6
+  },
+  "response": {
+    "query": "Apex Global Consultancy Inc official website careers",
+    "results": [
+      {
+        "title": "Apex Global Consultancy Inc | LinkedIn",
+        "url": "https://www.linkedin.com/company/apex-global-consultancy",
+        "content": "IT staffing and consulting. 2-10 employees.",
+        "score": 0.61
+      },
+      {
+        "title": "Apex Global Consultancy - Glassdoor",
+        "url": "https://www.glassdoor.com/Overview/apex-global-consultancy",
+        "content": "No reviews yet.",
+        "score": 0.44
+      },
+      {
+        "title": "Apex Global Consultancy Inc - ZoomInfo",
+        "url": "https://www.zoominfo.com/c/apex-global-consultancy-inc/123456",
+        "content": "Company profile.",
+        "score": 0.38
+      }
+    ]
+  }
+}

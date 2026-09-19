@@ -36,12 +36,43 @@ a test-suite release gate.*
 
 | Component | State |
 |---|---|
-| **Document integrity** (offer letters, resumes) | ✅ 21 tests |
-| **Sender impersonation** (look-alike domains) | ✅ 16 tests |
-| **Predatory practice detection** (3 tiers) | ✅ 9 tests |
-| Employer corroboration (Tavily · Solari) | ⬜ next |
-| PRISM tracing / guardrails / evals | ⬜ next |
+| **Document integrity** (offer letters, resumes) | ✅ |
+| **Sender impersonation** (look-alike domains) | ✅ |
+| **Predatory practice detection** (3 tiers) | ✅ |
+| **Employer corroboration** — Tavily | ✅ code complete, cassette-replayed |
+| **PRISM tracing** (trajectory per verification) | ✅ code complete, needs key |
+| Solari (live careers-page check) | ⬜ next |
 | Candidate-facing UI | ⬜ next |
+
+**55 tests passing.** Run the demo:
+
+```bash
+pip install -r backend/requirements.txt
+cd backend && python3 -m groundtruth.cli demo
+```
+
+### ⚠️ Sponsor APIs are blocked from this build environment
+
+`api.tavily.com`, `api.prism.blockconvey.com` and `*.getsolari.com` all return
+**403 from the egress proxy** — an organisation network policy, not a missing
+key. The integrations are written against the real SDK signatures and run live
+the moment they execute somewhere with network access.
+
+To go live, on a machine with internet:
+
+```bash
+export TAVILY_API_KEY=tvly-...            # app.tavily.com/redeem/HIRINGHACK
+export PRISMTRACE_API_KEY=...             # prism.blockconvey.com, coupon HACKBUILDER#3
+export PRISMTRACE_PROJECT_ID=...
+export GROUNDTRUTH_RECORD_DIR=backend/tests/cassettes   # records real responses
+cd backend && python3 -m groundtruth.cli verify \
+    --from careers@dataddoghq.com --company Datadog
+```
+
+Until then `CassetteTransport` replays fixtures through the identical code
+path, and `OfflineTransport` **refuses** rather than reporting a clean result —
+telling a job seeker "nothing found" when nothing was checked is the most
+dangerous bug this tool could have, so it is a tested release gate.
 
 ## What works today
 

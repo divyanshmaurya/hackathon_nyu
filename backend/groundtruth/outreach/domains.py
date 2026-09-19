@@ -359,11 +359,33 @@ def analyse(sender: str, claimed_company: str | None = None,
                             "the offer terms or the individual's authority.",
             )])
 
+    # When corroboration gave us the company's real domain and the sender is
+    # NOT on it, compare against that domain's name as well as the company
+    # name. 'dataddoghq' is three edits from "Datadog" but one from the
+    # verified 'datadoghq' -- the verified string is the stronger comparison,
+    # so missing it would let the most convincing imitations through.
+    if known_domain:
+        known_name = registrable_parts(domain_of(known_domain))[0]
+        for f in check_confusable_with(domain, known_name):
+            findings.append(_f(
+                f"{f.code}_VS_VERIFIED",
+                f"Sender domain imitates the verified domain {domain_of(known_domain)}",
+                Severity.CRITICAL,
+                f"{f.detail} This comparison is against the company's *verified* "
+                f"domain, established independently — not merely against its name.",
+                evidence=f.evidence,
+                remediation=f"The real domain is {domain_of(known_domain)}. Type it "
+                            f"in yourself; do not use the link you were sent.",
+                verified_domain=domain_of(known_domain),
+            ))
+        if findings:
+            verdict = "lookalike"
+
     if claimed_company:
         brand = check_brand_position(domain, claimed_company)
         conf = check_confusable_with(domain, claimed_company)
         findings += brand + conf
-        if brand or conf:
+        if brand or conf or verdict == "lookalike":
             verdict = "lookalike"
         elif _normalise(claimed_company) in _deconfuse(registrable_parts(domain)[0]):
             verdict = "unverifiable"

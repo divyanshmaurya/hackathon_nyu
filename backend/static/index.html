@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Groundtruth</title>
+<style>
+:root{
+  --bg:#fbfbfa; --panel:#fff; --ink:#1a1a18; --muted:#6b6b66; --line:#e4e4e0;
+  --accent:#2f5d50; --accent-soft:#eaf1ee;
+  --critical:#9b1c1c; --critical-bg:#fdecec;
+  --high:#9a4a12; --high-bg:#fdf0e6;
+  --medium:#7a6212; --medium-bg:#fbf5e3;
+  --low:#3a5a7a; --low-bg:#eef3f8;
+  --info:#2f5d50; --info-bg:#eaf1ee;
+  --radius:10px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#141413; --panel:#1c1c1a; --ink:#eeeeec; --muted:#9a9a94; --line:#2e2e2b;
+  --accent:#7fb8a4; --accent-soft:#1e2b27;
+  --critical:#f08a8a; --critical-bg:#2b1717;
+  --high:#e3a877; --high-bg:#2a1e14;
+  --medium:#d9c67a; --medium-bg:#262118;
+  --low:#9ec0dd; --low-bg:#17212a;
+  --info:#7fb8a4; --info-bg:#1a2320;
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:15px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Inter,sans-serif;}
+.wrap{max-width:860px;margin:0 auto;padding:40px 16px 80px}
+header{margin-bottom:28px}
+h1{font-size:26px;margin:0 0 6px;letter-spacing:-.02em}
+.tag{color:var(--muted);font-size:14px;margin:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
+label{display:block;font-size:13px;font-weight:600;margin:14px 0 5px}
+label:first-child{margin-top:0}
+input,textarea{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:7px;
+  background:var(--bg);color:var(--ink);font:inherit;font-size:14px}
+textarea{min-height:130px;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:transparent}
+.row{display:flex;gap:12px;flex-wrap:wrap}
+.row>div{flex:1 1 220px}
+.actions{display:flex;gap:10px;align-items:center;margin-top:18px;flex-wrap:wrap}
+button{background:var(--accent);color:#fff;border:0;border-radius:7px;padding:10px 18px;
+  font:inherit;font-weight:600;cursor:pointer}
+button:hover{filter:brightness(1.08)} button:disabled{opacity:.5;cursor:default}
+button.ghost{background:transparent;color:var(--accent);border:1px solid var(--line);font-weight:500}
+.hint{color:var(--muted);font-size:12.5px;margin-top:6px}
+.examples{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.chip{border:1px solid var(--line);background:var(--panel);color:var(--muted);
+  border-radius:20px;padding:5px 13px;font-size:12.5px;cursor:pointer}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+#out{margin-top:26px}
+.verdict{border-radius:var(--radius);padding:18px 20px;margin-bottom:20px;border:1px solid}
+.verdict h2{margin:0 0 6px;font-size:17px;letter-spacing:-.01em}
+.verdict p{margin:0;font-size:14px}
+.badge{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;padding:3px 9px;border-radius:5px;margin-bottom:9px}
+.sev-critical{color:var(--critical);background:var(--critical-bg);border-color:var(--critical)}
+.sev-high{color:var(--high);background:var(--high-bg);border-color:var(--high)}
+.sev-medium{color:var(--medium);background:var(--medium-bg);border-color:var(--medium)}
+.sev-low{color:var(--low);background:var(--low-bg);border-color:var(--low)}
+.sev-info{color:var(--info);background:var(--info-bg);border-color:var(--info)}
+.badge.sev-critical{background:var(--critical);color:#fff}
+.badge.sev-high{background:var(--high);color:#fff}
+.badge.sev-medium{background:var(--medium);color:#fff}
+.badge.sev-low{background:var(--low);color:#fff}
+.badge.sev-info{background:var(--info);color:#fff}
+.facts{display:flex;gap:22px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--radius);padding:14px 18px;margin-bottom:22px;font-size:13.5px}
+.facts div{min-width:120px}
+.facts span{display:block;color:var(--muted);font-size:11.5px;text-transform:uppercase;
+  letter-spacing:.06em;margin-bottom:2px}
+.facts b{font-weight:600;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+h3.group{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);
+  margin:24px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.finding{background:var(--panel);border:1px solid var(--line);border-left:3px solid;
+  border-radius:8px;padding:14px 16px;margin-bottom:10px}
+.finding.sev-critical{border-left-color:var(--critical)}
+.finding.sev-high{border-left-color:var(--high)}
+.finding.sev-medium{border-left-color:var(--medium)}
+.finding.sev-low{border-left-color:var(--low)}
+.finding.sev-info{border-left-color:var(--info)}
+.finding h4{margin:0 0 5px;font-size:14.5px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.finding p{margin:0;font-size:13.5px;color:var(--ink)}
+.ev{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;background:var(--bg);
+  border:1px solid var(--line);border-radius:6px;padding:7px 9px;margin-top:8px;
+  overflow-x:auto;white-space:pre-wrap;word-break:break-word;color:var(--muted)}
+.todo{margin-top:8px;font-size:13px;color:var(--accent);font-weight:500}
+.trace{margin-top:26px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
+.trace ol{margin:8px 0 0;padding-left:20px} .trace li{margin-bottom:3px}
+.disclaimer{margin-top:22px;padding:14px 16px;border:1px dashed var(--line);border-radius:8px;
+  font-size:12.5px;color:var(--muted)}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);
+  border-top-color:var(--accent);border-radius:50%;animation:s .7s linear infinite;vertical-align:-2px}
+@keyframes s{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Groundtruth</h1>
+  <p class="tag">Verify who is recruiting you, before you hand over anything.</p>
+</header>
+
+<form class="panel" id="f">
+  <div class="row">
+    <div>
+      <label for="sender">Who emailed you</label>
+      <input id="sender" name="sender" required placeholder="recruiter@example.com" autocomplete="off">
+    </div>
+    <div>
+      <label for="company">Company they say they're from</label>
+      <input id="company" name="company" placeholder="Datadog" autocomplete="off">
+    </div>
+  </div>
+
+  <label for="message">Paste their message</label>
+  <textarea id="message" name="message" placeholder="Paste the full email, LinkedIn message or WhatsApp text here."></textarea>
+
+  <label for="document">Offer letter, if they sent one (PDF)</label>
+  <input id="document" name="document" type="file" accept="application/pdf">
+  <p class="hint">Files are processed in memory and deleted immediately. Nothing is stored.</p>
+
+  <div class="actions">
+    <button type="submit" id="go">Check this</button>
+    <button type="button" class="ghost" id="clear">Clear</button>
+  </div>
+
+  <div class="examples">
+    <span class="hint" style="margin:0;align-self:center">Try:</span>
+    <button type="button" class="chip" data-ex="scam">OPT consultancy pitch</button>
+    <button type="button" class="chip" data-ex="lookalike">Look-alike domain</button>
+    <button type="button" class="chip" data-ex="legit">Ordinary recruiter</button>
+  </div>
+</form>
+
+<div id="out"></div>
+</div>
+
+<script>
+const EX = {
+  scam:{sender:"hr@apex-global-consultancy.top",company:"Apex Global Consultancy Inc",
+    message:`Congratulations! You have been selected for a Software Developer position with a leading Fortune 500 client. No interview is required.
+
+We charge a one-time registration fee of $1,500 which covers training and documentation. Don't worry if you lack experience - we will create work experience letters for you so your OPT requirements are met.
+
+You will be on bench until we find a client project; salary starts once billing begins. Please share your SSN, passport copy and I-20 today. Payment can be made via Zelle.
+
+This offer expires in 24 hours. Contact us on WhatsApp.`},
+  lookalike:{sender:"careers@dataddoghq.com",company:"Datadog",
+    message:"Hi, we'd like to move forward with your application. Please confirm your details and we'll send the paperwork."},
+  legit:{sender:"a.chen@datadoghq.com",company:"Datadog",
+    message:`Hi Alex, I'm a recruiter at Datadog. I came across your GitHub and wondered if you'd be open to chatting about our Platform Engineering team.
+
+Happy to share the job description and set up a 30-minute call with the hiring manager next week. No pressure at all if the timing isn't right.`}
+};
+const $=s=>document.querySelector(s), out=$("#out"), esc=s=>String(s??"")
+  .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+document.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{
+  const e=EX[c.dataset.ex]; $("#sender").value=e.sender;
+  $("#company").value=e.company; $("#message").value=e.message;
+  $("#document").value=""; $("#f").requestSubmit();
+});
+$("#clear").onclick=()=>{$("#f").reset(); out.innerHTML="";};
+
+const GROUPS=[["illegal","Not lawful for an employer to ask"],
+              ["harmful","Puts you at risk"],["context","Worth knowing"]];
+
+function finding(f){
+  return `<div class="finding sev-${esc(f.severity)}">
+    <h4><span class="badge sev-${esc(f.severity)}">${esc(f.severity)}</span>${esc(f.title)}</h4>
+    <p>${esc(f.detail)}</p>
+    ${f.evidence?`<div class="ev">${esc(f.evidence)}</div>`:""}
+    ${f.remediation?`<div class="todo">→ ${esc(f.remediation)}</div>`:""}
+  </div>`;
+}
+
+function render(d){
+  const all=[];
+  for(const part of ["practices","domain","employer","document"])
+    if(d[part]&&d[part].findings) all.push(...d[part].findings);
+  all.sort((a,b)=>({critical:4,high:3,medium:2,low:1,info:0})[b.severity]
+                 -({critical:4,high:3,medium:2,low:1,info:0})[a.severity]);
+
+  let h=`<div class="verdict sev-${esc(d.max_severity)}">
+    <span class="badge sev-${esc(d.max_severity)}">${esc(d.max_severity)}</span>
+    <h2>${esc(d.headline)}</h2><p>${esc(d.recommendation)}</p></div>`;
+
+  h+=`<div class="facts">
+    <div><span>Sender</span><b>${esc(d.sender)}</b></div>
+    ${d.claimed_company?`<div><span>Claims to be</span><b>${esc(d.claimed_company)}</b></div>`:""}
+    ${d.employer&&d.employer.likely_domain
+      ?`<div><span>Real domain</span><b>${esc(d.employer.likely_domain)}</b></div>`:""}
+    <div><span>Checks raised</span><b>${d.finding_count}</b></div></div>`;
+
+  const shown=new Set();
+  for(const [tier,heading] of GROUPS){
+    const g=all.filter(f=>f.meta&&f.meta.tier===tier);
+    if(!g.length) continue;
+    g.forEach(f=>shown.add(f));
+    h+=`<h3 class="group">${heading}</h3>`+g.map(finding).join("");
+  }
+  const rest=all.filter(f=>!shown.has(f));
+  if(rest.length) h+=`<h3 class="group">About the sender &amp; documents</h3>`+rest.map(finding).join("");
+
+  if(d.trace){
+    h+=`<div class="trace"><b>Audit trail</b> — run ${esc(d.trace.run_id.slice(0,8))},
+      ${d.trace.steps.length} steps, ${d.trace.total_ms}ms. ${esc(d.trace.note||"Submitted to PRISM.")}
+      <ol>${d.trace.steps.map(s=>`<li>${esc(s.label)} — ${esc(s.output_summary)}</li>`).join("")}</ol></div>`;
+  }
+  h+=`<div class="disclaimer"><b>What this does not tell you.</b> We check the sender's
+    domain, the employer's public presence, what the message asks you to do, and any
+    document you attach. We do not verify that the job is real or that the person exists,
+    and we never label an organisation a scam — we show you what we found so you can
+    decide. If you are on a student or work visa, talk to your school's international
+    student office before signing or paying anything.</div>`;
+  out.innerHTML=h;
+  out.scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+$("#f").onsubmit=async ev=>{
+  ev.preventDefault();
+  const btn=$("#go"); btn.disabled=true; btn.innerHTML='<span class="spin"></span> Checking…';
+  out.innerHTML="";
+  try{
+    const fd=new FormData($("#f"));
+    const r=await fetch("/api/verify",{method:"POST",body:fd});
+    if(!r.ok) throw new Error(`Server returned ${r.status}`);
+    render(await r.json());
+  }catch(e){
+    out.innerHTML=`<div class="verdict sev-high"><h2>Could not complete the check</h2>
+      <p>${esc(e.message)}</p></div>`;
+  }finally{ btn.disabled=false; btn.textContent="Check this"; }
+};
+</script>
+</body>
+</html>

@@ -43,9 +43,23 @@ a test-suite release gate.*
 | **PRISM tracing** (trajectory per verification) | ✅ code complete, needs key |
 | **Offer-letter tampering** (font/overlay/provenance) | ✅ |
 | Solari (live careers-page check) | ⬜ next |
-| Candidate-facing UI | ⬜ next |
+| **Candidate-facing web UI** (FastAPI + single page) | ✅ |
 
-**67 tests passing.** Run the demo:
+**67 tests passing.**
+
+### Run the web app
+
+```bash
+cd hackathon_nyu/backend
+pip3 install --user -r requirements.txt
+python3 -m uvicorn app:app --port 8000
+```
+
+Open <http://127.0.0.1:8000>. Three one-click examples are built in. Attach
+`samples/offers/03_name_tampered.pdf` to any of them to see document forensics
+run alongside the sender check.
+
+### Or the CLI
 
 ```bash
 git clone -b claude/tender-lovelace-4vgxta https://github.com/divyanshmaurya/hackathon_nyu

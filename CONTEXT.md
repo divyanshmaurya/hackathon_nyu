@@ -97,6 +97,34 @@ All of this works and is tested. Nothing below is a stub.
   copy-to-clipboard report for forwarding to a school's ISSS office
 - `observability/` — PRISM tracing and the setup verifier
 
+### Module map
+
+Every file, so you can navigate without grepping. Tests are the specification
+for their module — read `backend/tests/test_<area>.py` before changing one.
+
+| Module | Responsibility |
+|---|---|
+| `integrity/findings.py` | The evidence model: `Finding`, `Severity`, `Layer`. **`Severity` subclasses `str`, so it defines all four comparison dunders explicitly** — without them it inherits alphabetical ordering and every threshold inverts |
+| `integrity/pdf_layers.py` | Splits a PDF into what a human sees and what a parser sees. Classifies a span hidden on render mode 3 / alpha 0, ≤1pt, background-coloured, off-page or zero-area. Extracts with an oversized clip because PyMuPDF drops out-of-mediabox spans by default |
+| `integrity/unicode_checks.py` | Unicode Tag-block smuggling, zero-width carriers, bidi controls, homoglyphs. The `HOMOGLYPHS` table here is reused by `outreach/domains.py` — resume filter-evasion and domain spoofing are the same attack |
+| `integrity/injection.py` | Machine-directed instructions. Severity resolves from `(pattern, layer)`, never wording |
+| `integrity/tampering.py` | Post-production edits: font inconsistency against the **document-wide** body style, overlay patches, producer provenance |
+| `integrity/scanner.py` | Orchestrates the above into an `IntegrityReport` and a verdict |
+| `outreach/domains.py` | Sender impersonation. Confusable folding, typosquat, combosquat, brand-in-subdomain, punycode, free/disposable mail |
+| `outreach/practices.py` | What the message asks for, in three tiers. `only_before_offer` downgrades requests that are normal after an offer |
+| `corroborate/transport.py` | Tavily access: `LiveTransport` (records cassettes via `GROUNDTRUTH_RECORD_DIR`), `CassetteTransport`, `OfflineTransport` (raises) |
+| `corroborate/employer.py` | Company → real domain, scoring first-party sites above aggregators |
+| `corroborate/browser.py` | `SolariBrowser` / `LocalBrowser` / `OfflineBrowser` behind one interface. `default_browser()` requires the **client library to be importable**, not just a key or a binary on disk |
+| `corroborate/posting.py` | Careers-page listing. Finds the page by following homepage links, including to third-party ATS hosts |
+| `attest/keys.py` | Ed25519 keypairs and the `/.well-known/groundtruth.json` document |
+| `attest/token.py` | Issue and verify `gt1.…` attestations. Recipient addresses are hashed and namespaced per issuer |
+| `attest/resolver.py` | Fetches an issuer's keys from **its own domain**: `HttpsResolver`, `LocalRegistry` (tests/demo), `OfflineResolver` (raises) |
+| `observability/prism.py` | Trajectory + per-step traces sharing the run id as `session_id`. Shrinks its budgets on serverless |
+| `observability/check.py` | `prism-check`: handshake → a real traced verification → doctor. Distinguishes **unreachable** from **rejected** |
+| `config.py` | `.env` loading. Rejects RTF (TextEdit's default) rather than parsing it into plausible garbage, normalises typographic quotes, and never overrides an already-set variable |
+| `verify.py` | Orchestration. `verify_iter()` is the generator; `verify()` drains it |
+| `cli.py` | `verify` · `demo` · `keys` · `keygen` · `issue` · `prism-check` |
+
 ### Sponsor integrations — all three live-verified
 
 Confirmed working against real endpoints from a developer machine:
@@ -273,3 +301,25 @@ fingerprint).
 Test files are the specification for their modules. The false-positive controls
 in particular are release gates, not examples — read them before changing a
 detector.
+
+| Test file | Covers |
+|---|---|
+| `test_integrity.py` | Document forensics, Unicode attacks, layer-dependent severity |
+| `test_tampering.py` | Offer-letter edits, provenance, the hand-filled control |
+| `test_outreach.py` | Sender impersonation, predatory practices, benign controls |
+| `test_verify.py` | Orchestration, streaming, transport honesty |
+| `test_attest.py` | Signatures, replay binding, privacy, expiry |
+| `test_posting.py` | Careers pages, browser backends, the JS-rendering premise |
+| `test_prism_check.py` | Setup verification, unreachable vs rejected |
+| `test_config.py` | `.env` parsing, RTF rejection, tracked-secret release gate |
+
+---
+
+## 9. Keeping this file true
+
+This file does not update itself. If you do substantial work, append to it —
+particularly to §4 (decisions that must not be undone) and §5 (bugs already
+paid for), which are the two sections that save the next session real time.
+
+`git log` is a reliable second source: commit messages in this repository are
+written to explain **why** a change was made, not just what changed.

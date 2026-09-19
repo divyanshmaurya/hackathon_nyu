@@ -168,6 +168,18 @@ def _summarise(v: Verification) -> tuple[str, str]:
             "student office or an immigration attorney before replying — the "
             "consequences of these arrangements fall on you, not on them.",
         )
+    mismatch = next((f for f in v.findings
+                     if f.code == "ATTEST_ISSUER_MISMATCH"), None)
+    if mismatch:
+        issuer = (v.attestation.issuer if v.attestation else "another company")
+        return (
+            f"This message carries a real signature from {issuer} — but it was "
+            f"not sent by them.",
+            "A signature proves who created it, not who forwarded it. Someone "
+            "has attached another company's verification code to their own "
+            "message. Treat this as impersonation and contact the company "
+            "through their own website.",
+        )
     if critical:
         return (
             f"{len(critical)} serious problem(s) found with who this is from or "

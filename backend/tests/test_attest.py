@@ -194,3 +194,15 @@ def test_attestation_findings_survive_serialisation(pipes):
         len(d[k]["findings"]) for k in ("practices", "domain", "employer", "document")
         if d.get(k) and d[k].get("findings"))
     assert reachable == d["finding_count"]
+
+
+def test_replayed_token_gets_its_own_headline(pipes):
+    """The generic critical headline buried the point. A stolen signature is a
+    specific, explainable thing and the summary should say it."""
+    tp, rs = pipes
+    v = verify("hr@careers-portal-intl.com", "Confirm your details.", "Datadog",
+               attestation=demo_token(), recipient_email="alex@example.com",
+               transport=tp, resolver=rs)
+    assert "real signature from datadoghq.com" in v.headline
+    assert "not sent by them" in v.headline
+    assert "who created it, not who forwarded it" in v.recommendation

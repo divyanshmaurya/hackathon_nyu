@@ -167,21 +167,33 @@ class OfflineBrowser:
 
     def render(self, url: str, wait_ms: int = 2500) -> RenderedPage:
         raise BrowsingUnavailable(
-            "Page rendering is unavailable: no Solari key and no local browser. "
-            "The careers page was NOT checked — that is not the same as the "
-            "role being absent from it.")
+            "Page rendering is unavailable in this deployment, so the careers "
+            "page was NOT checked — that is not the same as the role being "
+            "absent from it. Browser clients exceed the serverless function "
+            "size limit; run the CLI locally to perform this check.")
+
+
+def _importable(name: str) -> bool:
+    import importlib.util
+    return importlib.util.find_spec(name) is not None
 
 
 def default_browser() -> Browser:
-    """Solari when a key exists, local Chromium when one is installed, else offline."""
-    if os.environ.get("SOLARI_API_KEY"):
+    """Solari when a key exists, local Chromium when one is installed, else offline.
+
+    A key alone is not enough: serverless builds omit the browser clients
+    entirely because they exceed the function size limit, so claiming the
+    Solari backend there would fail at render time instead of saying up front
+    that the check cannot run.
+    """
+    if os.environ.get("SOLARI_API_KEY") and _importable("solari_browser"):
         return SolariBrowser()
-    for path in (os.environ.get("CHROMIUM_PATH"),
-                 "/opt/pw-browsers/chromium-1194/chrome-linux/chrome"):
-        if path and os.path.exists(path):
-            return LocalBrowser(path)
-    try:
-        import playwright  # noqa: F401
+    # A browser binary on disk is useless without the client library that
+    # drives it, so the import check gates both branches.
+    if _importable("playwright"):
+        for path in (os.environ.get("CHROMIUM_PATH"),
+                     "/opt/pw-browsers/chromium-1194/chrome-linux/chrome"):
+            if path and os.path.exists(path):
+                return LocalBrowser(path)
         return LocalBrowser()
-    except ImportError:
-        return OfflineBrowser()
+    return OfflineBrowser()

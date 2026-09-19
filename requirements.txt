@@ -1,0 +1,18 @@
+# Vercel builds from this file at the repository root.
+#
+# Deliberately excludes playwright and solari-browser: together they are ~277MB
+# unzipped, over Vercel's 250MB function limit, and both bundle browser drivers
+# that cannot run in a serverless function regardless. The careers-page check
+# therefore reports itself unavailable on Vercel rather than silently failing —
+# run it locally or from a container host.
+#
+# For local development install backend/requirements.txt instead, which has the
+# full set.
+pymupdf>=1.24
+cryptography>=42.0
+fastapi>=0.115
+python-multipart>=0.0.9
+httpx>=0.27
+pydantic>=2.8
+tavily-python>=0.5
+prismtrace-sdk>=0.5

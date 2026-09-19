@@ -161,3 +161,24 @@ def test_ip_literal_is_not_split_into_a_registrable_name():
     """Regression: 127.0.0.1 parsed to ('0', '1') and was then compared against
     company names."""
     assert registrable_parts("127.0.0.1") == ("127.0.0.1", "")
+
+
+def test_offline_when_browser_clients_are_not_installed(monkeypatch):
+    """Serverless builds omit playwright and solari-browser because together
+    they exceed the function size limit. Claiming a backend there would fail at
+    render time instead of saying up front that the check cannot run."""
+    import groundtruth.corroborate.browser as b
+    monkeypatch.setenv("SOLARI_API_KEY", "slr_live_test")
+    monkeypatch.setattr(b, "_importable", lambda name: False)
+    assert b.default_browser().engine == "offline"
+
+
+def test_a_chromium_binary_alone_is_not_enough(monkeypatch, tmp_path):
+    """A browser on disk is useless without the client library that drives it."""
+    import groundtruth.corroborate.browser as b
+    fake = tmp_path / "chrome"
+    fake.write_text("")
+    monkeypatch.delenv("SOLARI_API_KEY", raising=False)
+    monkeypatch.setenv("CHROMIUM_PATH", str(fake))
+    monkeypatch.setattr(b, "_importable", lambda name: False)
+    assert b.default_browser().engine == "offline"

@@ -125,3 +125,13 @@ def test_every_emitted_trace_shares_the_run_as_session_id():
     t.tool("b", "two", ms=2)
     r._emit_step_traces(t)
     assert {s["session_id"] for s in sent} == {t.run_id}
+
+
+def test_flush_budget_shrinks_on_serverless(monkeypatch):
+    """A 15s flush would exceed Vercel Hobby's 10s invocation cap and take the
+    response down with it, losing both the trace and the answer."""
+    from groundtruth.observability import prism
+    monkeypatch.delenv("VERCEL", raising=False)
+    assert prism._flush_timeout() == 15.0
+    monkeypatch.setenv("VERCEL", "1")
+    assert prism._flush_timeout() < 5.0

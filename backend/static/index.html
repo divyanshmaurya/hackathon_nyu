@@ -191,6 +191,18 @@ Happy to share the job description and set up a 30-minute call with the hiring m
 };
 let DEMO_TOKEN="";
 fetch("/api/demo-token").then(r=>r.json()).then(d=>{DEMO_TOKEN=d.token||"";}).catch(()=>{});
+fetch("/api/health").then(r=>r.json()).then(d=>{
+  if(d && d.can_browse === false){
+    const box=document.querySelector("#check_posting");
+    if(box){
+      box.checked=false; box.disabled=true;
+      const hint=box.closest("div").querySelector(".hint");
+      if(hint) hint.textContent =
+        "Unavailable on this hosted demo — browser clients exceed the serverless "
+        + "size limit. Run the CLI locally for this check.";
+    }
+  }
+}).catch(()=>{});
 const $=s=>document.querySelector(s), out=$("#out"), esc=s=>String(s??"")
   .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 

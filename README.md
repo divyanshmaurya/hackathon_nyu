@@ -33,6 +33,7 @@ a test-suite release gate.*
 - Audience, distribution, sustainability → [`docs/MARKET.md`](docs/MARKET.md)
 - The employer trust signal → [`docs/ATTESTATION.md`](docs/ATTESTATION.md)
 - Careers-page verification → [`docs/SOLARI.md`](docs/SOLARI.md)
+- Deploying → [`docs/DEPLOY.md`](docs/DEPLOY.md)
 
 ## Status
 
@@ -48,7 +49,7 @@ a test-suite release gate.*
 | **Careers-page verification** — Solari | ✅ logic tested, remote transport needs key |
 | **Candidate-facing web UI** (FastAPI + single page) | ✅ |
 
-**131 tests passing.**
+**134 tests passing.**
 
 ### Run the web app
 

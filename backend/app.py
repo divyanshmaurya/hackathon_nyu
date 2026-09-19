@@ -47,6 +47,7 @@ def health() -> dict:
         "ok": True,
         "corroboration": "live" if t.live else type(t).__name__,
         "browser": default_browser().engine,
+        "can_browse": default_browser().engine != "offline",
         "prism": "enabled" if _recorder.enabled else _recorder.why_disabled(),
     }
 

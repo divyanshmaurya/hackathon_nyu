@@ -1,0 +1,10 @@
+# Keep the function small: only what serves a request ships.
+backend/tests/fixtures/
+samples/
+docs/
+*.md
+!README.md
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/

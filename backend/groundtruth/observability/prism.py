@@ -25,6 +25,16 @@ from dataclasses import dataclass, field
 from typing import Any
 
 
+def _serverless() -> bool:
+    return any(os.environ.get(v) for v in
+               ("VERCEL", "AWS_LAMBDA_FUNCTION_NAME", "FUNCTIONS_WORKER_RUNTIME",
+                "K_SERVICE"))
+
+
+def _flush_timeout() -> float:
+    return 2.5 if _serverless() else 15.0
+
+
 @dataclass
 class Step:
     step_type: str
@@ -103,8 +113,9 @@ class PrismRecorder:
                     project_id=self.project_id,
                     # The default 10s is per-request; a run emits a trajectory
                     # plus one trace per step, and the tail of those was timing
-                    # out on a cold connection.
-                    timeout=30,
+                    # out on a cold connection. Serverless caps the whole
+                    # invocation, so it gets a tighter budget instead.
+                    timeout=5 if _serverless() else 30,
                 )
             except Exception as exc:  # pragma: no cover - depends on env
                 self._client = None
@@ -181,9 +192,12 @@ class PrismRecorder:
                 trace.note = "Submitted to PRISM."
                 self._emit_step_traces(trace)
                 try:
-                    # Generous: the process may exit right after this, and an
-                    # unflushed trace is simply lost.
-                    self._client.flush(timeout=15.0)  # type: ignore[union-attr]
+                    # Generous locally, since the process may exit right after
+                    # this and an unflushed trace is simply lost. On serverless
+                    # the whole invocation is capped (10s on Vercel Hobby), so
+                    # a long flush would time out the request itself and lose
+                    # the response as well as the trace.
+                    self._client.flush(timeout=_flush_timeout())  # type: ignore[union-attr]
                 except Exception:
                     # A telemetry flush must never fail a verification. The
                     # trajectory is already accepted at this point.

@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Iterator
 
 from .attest.resolver import KeyResolver, KeysUnavailable, default_resolver
 from .attest.token import TokenCheck, parse as parse_token, verify as verify_token
@@ -76,6 +76,44 @@ class Verification:
             "attestation_findings": [f.to_dict() for f in self.attestation_findings],
             "trace": self.trace.to_dict() if self.trace else None,
         }
+
+
+@dataclass
+class Progress:
+    """One completed stage, emitted while a verification is still running.
+
+    Real events from the real pipeline. The UI shows checks completing as they
+    complete; it does not replay a finished result on a timer, which would be
+    theatre dressed as instrumentation.
+    """
+
+    stage: str
+    label: str
+    status: str            # done | skipped | error
+    summary: str = ""
+    ms: int = 0
+    severity: str = "info"
+    #: True only when the check found *positive* evidence. A check that
+    #: completed without confirming anything is not a pass, and showing it as
+    #: a green tick would tell the reader the opposite of the truth — the same
+    #: absence-of-evidence conflation the findings model forbids.
+    positive: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"event": "progress", "stage": self.stage, "label": self.label,
+                "status": self.status, "summary": self.summary, "ms": self.ms,
+                "severity": self.severity, "positive": self.positive}
+
+
+#: Declared up front so the UI can render the checklist before anything runs.
+STAGES: list[tuple[str, str]] = [
+    ("practices", "What they're asking you to do"),
+    ("employer", "Whether the company exists"),
+    ("domain", "Who actually sent it"),
+    ("attestation", "Signed verification code"),
+    ("posting", "Whether the role is listed"),
+    ("document", "The attached document"),
+]
 
 
 def _attestation_findings(check: TokenCheck | None,
@@ -235,7 +273,7 @@ def _summarise(v: Verification) -> tuple[str, str]:
     )
 
 
-def verify(
+def verify_iter(
     sender: str,
     message: str = "",
     claimed_company: str | None = None,
@@ -248,8 +286,12 @@ def verify(
     recorder: PrismRecorder | None = None,
     resolver: KeyResolver | None = None,
     browser: Browser | None = None,
-) -> Verification:
-    """Run every available check over one piece of outreach."""
+) -> Iterator[Progress | Verification]:
+    """Run every check, yielding a Progress event as each one finishes.
+
+    The final item is the Verification itself. `verify()` drains this and
+    returns that, so callers that do not care about progress are unaffected.
+    """
     transport = transport or default_transport()
     recorder = recorder or PrismRecorder()
     trace = Trace()
@@ -267,6 +309,13 @@ def verify(
                    inp=f"{len(message)} chars",
                    out=f"{len(v.practices.findings)} finding(s), tiers={v.practices.tiers}",
                    ms=int((time.perf_counter() - t0) * 1000))
+        yield Progress("practices", "What they're asking you to do", "done",
+                       f"{len(v.practices.findings)} finding(s)",
+                       int((time.perf_counter() - t0) * 1000),
+                       v.practices.max_severity.value)
+    else:
+        yield Progress("practices", "What they're asking you to do", "skipped",
+                       "no message supplied")
 
     # 2. Who does the company say it is, and does it exist?
     known_domain = None
@@ -280,6 +329,16 @@ def verify(
                        f"checked={v.employer.checked}",
                    ms=int((time.perf_counter() - t0) * 1000),
                    status="success" if v.employer.checked else "error")
+        yield Progress("employer", "Whether the company exists",
+                       "done" if v.employer.checked else "error",
+                       (f"real domain: {known_domain}" if known_domain
+                        else "no first-party site found"),
+                       int((time.perf_counter() - t0) * 1000),
+                       v.employer.max_severity.value,
+                       positive=bool(known_domain))
+    else:
+        yield Progress("employer", "Whether the company exists", "skipped",
+                       "no company name supplied")
 
     # 3. Sender check, now upgraded by whatever step 2 established.
     t0 = time.perf_counter()
@@ -288,6 +347,11 @@ def verify(
                inp=f"{sender} vs {known_domain or claimed_company}",
                out=f"verdict={v.domain.verdict} severity={v.domain.max_severity.value}",
                ms=int((time.perf_counter() - t0) * 1000))
+    yield Progress("domain", "Who actually sent it", "done",
+                   v.domain.verdict.replace("_", " "),
+                   int((time.perf_counter() - t0) * 1000),
+                   v.domain.max_severity.value,
+                   positive=(v.domain.verdict == "matches_claim"))
 
     # 4. A signed attestation, if the sender supplied one. Checked against the
     #    issuer's own domain, never against anything the token points at.
@@ -310,6 +374,16 @@ def verify(
         trace.tool("groundtruth.attest", "Verify signed attestation",
                    inp=attestation[:40] + "…", out=out,
                    ms=int((time.perf_counter() - t0) * 1000), status=status)
+        _sev = max((f.severity for f in v.attestation_findings),
+                   default=Severity.INFO).value
+        yield Progress("attestation", "Signed verification code",
+                       "done" if status == "success" else "error", out,
+                       int((time.perf_counter() - t0) * 1000), _sev,
+                       positive=bool(v.attestation and v.attestation.valid
+                                     and _sev == "info"))
+    else:
+        yield Progress("attestation", "Signed verification code", "skipped",
+                       "none supplied")
 
     # 5. Is the role actually listed where this employer lists roles? Opt-in:
     #    it drives a real browser and costs seconds, not milliseconds.
@@ -324,6 +398,16 @@ def verify(
                    out=f"found={v.posting.found} url={v.posting.careers_url}",
                    ms=int((time.perf_counter() - t0) * 1000),
                    status="success" if v.posting.checked else "error")
+        yield Progress("posting", "Whether the role is listed",
+                       "done" if v.posting.checked else "error",
+                       ("listed on the careers page" if v.posting.found
+                        else "not found on the careers page"),
+                       int((time.perf_counter() - t0) * 1000),
+                       v.posting.max_severity.value,
+                       positive=bool(v.posting.found))
+    else:
+        yield Progress("posting", "Whether the role is listed", "skipped",
+                       "not requested")
 
     # 6. If an offer letter was attached, check it for manipulation.
     if document_path:
@@ -334,10 +418,28 @@ def verify(
                    out=f"verdict={v.document.verdict} "
                        f"findings={len(v.document.findings)}",
                    ms=int((time.perf_counter() - t0) * 1000))
+        yield Progress("document", "The attached document", "done",
+                       v.document.verdict,
+                       int((time.perf_counter() - t0) * 1000),
+                       v.document.max_severity.value,
+                       positive=(v.document.verdict == "clean"))
+    else:
+        yield Progress("document", "The attached document", "skipped",
+                       "nothing attached")
 
     v.headline, v.recommendation = _summarise(v)
     trace.step("final_answer", "Summarise for the candidate",
                output_summary=f"{v.max_severity.value}: {v.headline}")
 
     recorder.submit(trace, final_status="success")
-    return v
+    yield v
+
+
+def verify(*args: Any, **kwargs: Any) -> Verification:
+    """Run every check and return the result. Progress events are discarded."""
+    result: Verification | None = None
+    for item in verify_iter(*args, **kwargs):
+        if isinstance(item, Verification):
+            result = item
+    assert result is not None, "verify_iter must yield a Verification last"
+    return result

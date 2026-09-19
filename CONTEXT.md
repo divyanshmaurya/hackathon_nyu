@@ -6,7 +6,7 @@ reasoning behind them — what was decided, what was tried and rejected, what is
 half-built, and which mistakes are already paid for.
 
 Branch: `claude/tender-lovelace-4vgxta` (the repository's default).
-State when written: 135 tests passing, all six checks built, all three sponsor
+State when written: 139 tests passing, all six checks built, all three sponsor
 integrations live-verified. Run `git log --oneline` for what has landed since —
 commit messages here are written to explain *why*, not just what.
 
@@ -86,7 +86,11 @@ All of this works and is tested. Nothing below is a stub.
 ### Orchestration and surfaces
 
 - `verify.py` — runs the checks in a deliberate order and summarises them
-- `app.py` + `static/index.html` — FastAPI service and the candidate-facing page
+- `app.py` + `static/index.html` — FastAPI service and the candidate-facing page.
+  `POST /api/verify` returns a whole result; `POST /api/verify/stream` returns
+  newline-delimited JSON, one real event per check as it finishes. The UI uses
+  the streaming one. `verify_iter()` is the generator both are built on;
+  `verify()` drains it, so non-streaming callers are unaffected
 - `cli.py` — `verify`, `demo`, `keys`, `keygen`, `issue`, `prism-check`
 - `observability/` — PRISM tracing and the setup verifier
 

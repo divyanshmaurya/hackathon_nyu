@@ -165,7 +165,7 @@ datadoghq.com"* — the trust signal laundering a scam.
 
 ## Status
 
-**135 tests passing.** All three sponsor integrations live-verified.
+**139 tests passing.** All three sponsor integrations live-verified.
 
 | Component | State |
 |---|---|
@@ -204,7 +204,7 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -r backend/requirements.txt
 python3 -m playwright install chromium     # only if not using Solari
 
-cd backend && python3 -m pytest tests -q   # 135 passing
+cd backend && python3 -m pytest tests -q   # 139 passing
 python3 -m uvicorn app:app --port 8000
 ```
 

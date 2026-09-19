@@ -13,7 +13,7 @@ from groundtruth.corroborate.transport import (  # noqa: E402
     CassetteTransport, CorroborationUnavailable, OfflineTransport)
 from groundtruth.integrity.findings import Severity  # noqa: E402
 from groundtruth.observability.prism import PrismRecorder, Trace  # noqa: E402
-from groundtruth.verify import verify  # noqa: E402
+from groundtruth.verify import Verification, verify  # noqa: E402
 
 CASSETTES = pathlib.Path(__file__).parent / "cassettes"
 
@@ -163,3 +163,57 @@ def test_medium_findings_are_not_reported_as_nothing_alarming(tape):
     assert v.max_severity is Severity.MEDIUM
     assert "Nothing alarming" not in v.headline
     assert "second look" in v.headline
+
+
+# ------------------------------------------------------------- streaming ---
+
+def test_verify_iter_emits_one_event_per_stage_then_the_result(tape):
+    from groundtruth.verify import STAGES, Progress, verify_iter
+    items = list(verify_iter("careers@dataddoghq.com", "Hello", "Datadog",
+                             transport=tape))
+    progress = [i for i in items if isinstance(i, Progress)]
+    assert {p.stage for p in progress} == {k for k, _ in STAGES}
+    assert isinstance(items[-1], Verification), "result must be last"
+
+
+def test_verify_drains_the_generator_and_matches_streaming(tape):
+    """verify() is the non-streaming façade; it must not diverge."""
+    from groundtruth.verify import verify_iter
+    streamed = [i for i in verify_iter("careers@dataddoghq.com", "Hi", "Datadog",
+                                       transport=tape)
+                if isinstance(i, Verification)][0]
+    direct = verify("careers@dataddoghq.com", "Hi", "Datadog", transport=tape)
+    assert direct.max_severity is streamed.max_severity
+    assert direct.headline == streamed.headline
+
+
+def test_positive_is_only_set_when_something_was_confirmed(tape):
+    """A completed check that confirmed nothing is not a pass. Showing it as
+    one would be the absence-of-evidence conflation in UI form."""
+    from groundtruth.verify import Progress, verify_iter
+
+    def stages(sender, company):
+        return {p.stage: p for p in verify_iter(sender, "Hi", company, transport=tape)
+                if isinstance(p, Progress)}
+
+    good = stages("recruiter@datadoghq.com", "Datadog")
+    assert good["domain"].positive is True          # matches the verified domain
+    assert good["employer"].positive is True        # a real domain was found
+
+    bad = stages("careers@dataddoghq.com", "Datadog")
+    assert bad["domain"].positive is False          # look-alike is not a pass
+
+    unknown = stages("hr@whoever.com", "Nexora Talent Partners LLC")
+    assert unknown["employer"].positive is False    # no footprint is not a pass
+
+
+def test_skipped_stages_are_reported_not_omitted(tape):
+    """A stage that did not run must still appear, or the reader cannot tell
+    the difference between 'checked and clean' and 'never checked'."""
+    from groundtruth.verify import Progress, verify_iter
+    progress = {p.stage: p for p in verify_iter("a@b.com", "Hi", "Datadog",
+                                                transport=tape)
+                if isinstance(p, Progress)}
+    assert progress["document"].status == "skipped"
+    assert progress["attestation"].status == "skipped"
+    assert all(not p.positive for p in progress.values() if p.status == "skipped")

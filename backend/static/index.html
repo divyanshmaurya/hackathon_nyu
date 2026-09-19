@@ -91,6 +91,55 @@ h3.group{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(
 .trace ol{margin:8px 0 0;padding-left:20px} .trace li{margin-bottom:3px}
 .disclaimer{margin-top:22px;padding:14px 16px;border:1px dashed var(--line);border-radius:8px;
   font-size:12.5px;color:var(--muted)}
+.hero{margin-bottom:30px}
+.hero h1{font-size:34px;margin:0 0 10px;letter-spacing:-.03em;line-height:1.15}
+.hero .lede{font-size:16.5px;color:var(--ink);margin:0 0 18px;max-width:62ch;line-height:1.55}
+.hero .lede b{font-weight:650}
+.stats{display:flex;gap:26px;flex-wrap:wrap;padding:16px 0;border-top:1px solid var(--line);
+  border-bottom:1px solid var(--line);margin-bottom:22px}
+.stat{flex:1 1 150px;min-width:140px}
+.stat b{display:block;font-size:22px;letter-spacing:-.02em;line-height:1.2}
+.stat span{display:block;font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.45}
+.stat a{color:inherit;text-decoration:none;border-bottom:1px dotted var(--muted)}
+.thesis{background:var(--accent-soft);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;
+  padding:13px 16px;margin-bottom:24px;font-size:14px;line-height:1.6}
+.thesis b{color:var(--accent)}
+
+.checklist{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:16px 18px;margin-top:22px}
+.checklist h3{margin:0 0 12px;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.chk{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:14px;
+  border-bottom:1px solid var(--line)}
+.chk:last-child{border-bottom:0}
+.chk .mark{width:17px;height:17px;flex:0 0 17px;border-radius:50%;border:2px solid var(--line);
+  display:grid;place-items:center;font-size:10px;font-weight:700;color:#fff}
+.chk.waiting .mark{border-color:var(--line)}
+.chk.running .mark{border-color:var(--accent);border-top-color:transparent;animation:s .7s linear infinite}
+.chk.done .mark{border-color:transparent;background:var(--muted)}
+.chk.done .mark::after{content:"✓"}
+.chk.done.positive .mark{background:var(--info)}
+.chk.done.neutral .mark{background:var(--muted)}
+.chk.skipped .mark{border-color:var(--line);background:transparent}
+.chk.skipped .mark::after{content:"–";color:var(--muted)}
+.chk.error .mark{border-color:transparent;background:var(--medium)}
+.chk.error .mark::after{content:"!"}
+.chk.hit .mark{border-color:transparent}
+.chk .who{flex:1;min-width:0}
+.chk .note{color:var(--muted);font-size:12.5px;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;max-width:46%}
+.chk.waiting .who,.chk.waiting .note{color:var(--muted);opacity:.55}
+.chk .ms{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:44px;text-align:right}
+
+.actions-box{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px 20px;margin-top:24px}
+.actions-box h3{margin:0 0 4px;font-size:15px}
+.actions-box p.sub{margin:0 0 14px;font-size:13px;color:var(--muted)}
+.actions-box ol{margin:0;padding-left:20px;font-size:13.5px;line-height:1.7}
+.actions-box li{margin-bottom:7px}
+.actions-box a{color:var(--accent);font-weight:500}
+.copybar{display:flex;gap:9px;margin-top:15px;flex-wrap:wrap}
+.copybar button{font-size:13px;padding:8px 14px}
+.copied{font-size:12.5px;color:var(--info);align-self:center}
 .spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);
   border-top-color:var(--accent);border-radius:50%;animation:s .7s linear infinite;vertical-align:-2px}
 @keyframes s{to{transform:rotate(360deg)}}
@@ -98,9 +147,29 @@ h3.group{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(
 </head>
 <body>
 <div class="wrap">
-<header>
-  <h1>Groundtruth</h1>
-  <p class="tag">Verify who is recruiting you, before you hand over anything.</p>
+<header class="hero">
+  <h1>Verify who is recruiting you,<br>before you hand over anything.</h1>
+  <p class="lede">
+    Paste a recruiter's message. We check whether the sender is who they claim,
+    whether the company exists, and whether what they're asking of you is
+    <b>legal</b>. Free, nothing stored.
+  </p>
+  <div class="stats">
+    <div class="stat"><b>$501M</b><span>lost to job scams in 2024, up from $90M in 2020
+      — <a href="https://cw33.com/news/local/job-scams-result-in-150-4-million-losses-ftc-reports/"
+      target="_blank" rel="noopener">FTC</a></span></div>
+    <div class="stat"><b>1 in 4</b><span>people who job-hunted in 2025 reported
+      being scammed</span></div>
+    <div class="stat"><b>2,500+</b><span>F-1 students given fabricated employment
+      records by a single operator</span></div>
+  </div>
+  <p class="thesis">
+    Students on F-1/OPT are charged up to $2,000 for fake work history. The
+    consultancy vanishes; the student can be removed from the country years
+    later, often never knowing the record was false.
+    <b>We never ask whether something was written by AI</b> — that punishes
+    honest people. We ask whether any of it is real.
+  </p>
 </header>
 
 <form class="panel" id="f">
@@ -165,6 +234,7 @@ h3.group{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(
   </div>
 </form>
 
+<div id="progress"></div>
 <div id="out"></div>
 </div>
 
@@ -203,7 +273,8 @@ fetch("/api/health").then(r=>r.json()).then(d=>{
     }
   }
 }).catch(()=>{});
-const $=s=>document.querySelector(s), out=$("#out"), esc=s=>String(s??"")
+const $=s=>document.querySelector(s), out=$("#out"), prog=$("#progress"),
+      esc=s=>String(s??"")
   .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 
 document.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{
@@ -218,6 +289,41 @@ document.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{
 });
 $("#clear").onclick=()=>{$("#f").reset(); out.innerHTML="";};
 
+function startChecklist(stages){
+  prog.innerHTML = `<div class="checklist"><h3 class="chk-title">Checking</h3>` + stages.map(st=>
+    `<div class="chk waiting" data-stage="${esc(st.stage)}">
+       <span class="mark"></span>
+       <span class="who">${esc(st.label)}</span>
+       <span class="note"></span><span class="ms"></span>
+     </div>`).join("") + `</div>`;
+  const first = prog.querySelector(".chk");
+  if(first){ first.classList.remove("waiting"); first.classList.add("running"); }
+}
+
+function markStage(d){
+  const row = prog.querySelector(`.chk[data-stage="${d.stage}"]`);
+  if(!row) return;
+  row.className = "chk " + d.status;
+  // The tick reflects what was found, not merely that the check ran. Green is
+  // reserved for positive evidence; a check that completed without confirming
+  // anything stays neutral, because a green tick beside "unverifiable" tells
+  // the reader the opposite of the truth.
+  if(d.status==="done"){
+    if(["critical","high","medium","low"].includes(d.severity)){
+      row.classList.add("hit");
+      row.querySelector(".mark").style.background = `var(--${d.severity})`;
+    } else {
+      row.classList.add(d.positive ? "positive" : "neutral");
+    }
+  }
+  row.querySelector(".note").textContent = d.summary || "";
+  row.querySelector(".ms").textContent = d.ms > 4 ? d.ms + "ms" : "";
+  const next = row.nextElementSibling;
+  if(next && next.classList.contains("waiting")){
+    next.classList.remove("waiting"); next.classList.add("running");
+  }
+}
+
 const GROUPS=[["illegal","Not lawful for an employer to ask"],
               ["harmful","Puts you at risk"],["context","Worth knowing"]];
 
@@ -228,6 +334,81 @@ function finding(f){
     ${f.evidence?`<div class="ev">${esc(f.evidence)}</div>`:""}
     ${f.remediation?`<div class="todo">→ ${esc(f.remediation)}</div>`:""}
   </div>`;
+}
+
+function actionsFor(d){
+  const sev=d.max_severity, bad=["critical","high"].includes(sev);
+  const illegal=(d.practices&&d.practices.findings||[])
+    .filter(f=>f.meta&&f.meta.tier==="illegal").length;
+
+  const steps=[];
+  if(illegal){
+    steps.push(`<b>Do not pay, sign, or send documents.</b> What you were asked
+      for is not lawful for an employer to request.`);
+    steps.push(`<b>If you are on a student or work visa, talk to your school's
+      international student office before replying.</b> Accepting fabricated
+      employment records is visa fraud, and the consequences fall on you — not
+      on them. This is the single most important step on this page.`);
+  } else if(bad){
+    steps.push(`<b>Don't reply or click links in the message.</b> If you think
+      the company is real, contact them through a phone number or address you
+      found yourself.`);
+  } else {
+    steps.push(`<b>Nothing here is alarming</b>, but this is not a guarantee.
+      Verify anything important independently before sending documents.`);
+  }
+  steps.push(`<b>Keep the message.</b> Screenshots and the original email are
+    what any report depends on.`);
+  if(bad){
+    steps.push(`<b>Report it.</b>
+      <a href="https://reportfraud.ftc.gov/" target="_blank" rel="noopener">FTC —
+      reportfraud.ftc.gov</a> ·
+      <a href="https://www.ic3.gov/" target="_blank" rel="noopener">FBI IC3</a> ·
+      <a href="https://www.bbb.org/scamtracker" target="_blank" rel="noopener">BBB
+      Scam Tracker</a>. Reports are what let others find out before they pay.`);
+    steps.push(`<b>Tell one other person.</b> These campaigns target the same
+      cohort — classmates, your program's group chat, your careers office.`);
+  }
+
+  return `<div class="actions-box">
+    <h3>What to do now</h3>
+    <p class="sub">Concrete steps, in order.</p>
+    <ol>${steps.map(x=>`<li>${x}</li>`).join("")}</ol>
+    <div class="copybar">
+      <button type="button" class="ghost" id="copy">Copy this report</button>
+      <span class="copied" id="copied"></span>
+    </div>
+  </div>`;
+}
+
+function reportText(d){
+  const L=[];
+  L.push(`GROUNDTRUTH VERIFICATION REPORT`);
+  L.push(`Checked: ${new Date().toISOString().slice(0,16).replace("T"," ")} UTC`);
+  L.push(``);
+  L.push(`From:      ${d.sender}`);
+  if(d.claimed_company) L.push(`Claims:    ${d.claimed_company}`);
+  if(d.employer&&d.employer.likely_domain)
+    L.push(`Real domain: ${d.employer.likely_domain}`);
+  L.push(`Result:    ${String(d.max_severity).toUpperCase()} — ${d.headline}`);
+  L.push(``);
+  L.push(`FINDINGS (${d.finding_count})`);
+  const all=[];
+  for(const k of ["practices","domain","employer","document","posting"])
+    if(d[k]&&d[k].findings) all.push(...d[k].findings);
+  if(d.attestation_findings) all.push(...d.attestation_findings);
+  for(const f of all){
+    L.push(`  [${String(f.severity).toUpperCase()}] ${f.title}`);
+    if(f.evidence) L.push(`      evidence: ${f.evidence}`);
+    if(f.remediation) L.push(`      action:   ${f.remediation}`);
+  }
+  L.push(``);
+  L.push(`WHAT THIS DOES NOT TELL YOU`);
+  L.push(`  Groundtruth checks the sender's domain, the employer's public`);
+  L.push(`  presence, what the message asks for, and any attached document.`);
+  L.push(`  It does not verify that the job is real or that the person exists,`);
+  L.push(`  and it never labels an organisation a scam.`);
+  return L.join("\n");
 }
 
 function render(d){
@@ -264,6 +445,7 @@ function render(d){
       ${d.trace.steps.length} steps, ${d.trace.total_ms}ms. ${esc(d.trace.note||"Submitted to PRISM.")}
       <ol>${d.trace.steps.map(s=>`<li>${esc(s.label)} — ${esc(s.output_summary)}</li>`).join("")}</ol></div>`;
   }
+  h+=actionsFor(d);
   h+=`<div class="disclaimer"><b>What this does not tell you.</b> We check the sender's
     domain, the employer's public presence, what the message asks you to do, and any
     document you attach. We do not verify that the job is real or that the person exists,
@@ -271,18 +453,43 @@ function render(d){
     decide. If you are on a student or work visa, talk to your school's international
     student office before signing or paying anything.</div>`;
   out.innerHTML=h;
+  const cp=$("#copy");
+  if(cp) cp.onclick=async()=>{
+    try{ await navigator.clipboard.writeText(reportText(d));
+         $("#copied").textContent="Copied — paste it into an email or a report.";
+    }catch(e){ $("#copied").textContent="Copy failed; select the page text instead."; }
+  };
   out.scrollIntoView({behavior:"smooth",block:"start"});
 }
 
 $("#f").onsubmit=async ev=>{
   ev.preventDefault();
   const btn=$("#go"); btn.disabled=true; btn.innerHTML='<span class="spin"></span> Checking…';
-  out.innerHTML="";
+  out.innerHTML=""; prog.innerHTML="";
   try{
-    const fd=new FormData($("#f"));
-    const r=await fetch("/api/verify",{method:"POST",body:fd});
+    const r=await fetch("/api/verify/stream",{method:"POST",body:new FormData($("#f"))});
     if(!r.ok) throw new Error(`Server returned ${r.status}`);
-    render(await r.json());
+    const reader=r.body.getReader(), dec=new TextDecoder();
+    let buf="", result=null;
+    // Newline-delimited JSON: a chunk may split a line, so hold the remainder.
+    for(;;){
+      const {value,done}=await reader.read();
+      if(done) break;
+      buf+=dec.decode(value,{stream:true});
+      const lines=buf.split("\n"); buf=lines.pop();
+      for(const line of lines){
+        if(!line.trim()) continue;
+        let d; try{ d=JSON.parse(line); }catch(_){ continue; }
+        if(d.event==="start") startChecklist(d.stages);
+        else if(d.event==="progress") markStage(d);
+        else if(d.event==="result") result=d.result;
+        else if(d.event==="error") throw new Error(d.detail);
+      }
+    }
+    const title=prog.querySelector(".chk-title");
+    if(title) title.textContent="Checked";
+    if(!result) throw new Error("The check ended without returning a result.");
+    render(result);
   }catch(e){
     out.innerHTML=`<div class="verdict sev-high"><h2>Could not complete the check</h2>
       <p>${esc(e.message)}</p></div>`;
